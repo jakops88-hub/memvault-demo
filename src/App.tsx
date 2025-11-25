@@ -43,26 +43,14 @@ interface LogEntry {
 // 1. Avgör om vi kör lokalt
 const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
 
-// 2. API URL: Peka direkt på Railway i produktion, men använd proxy lokalt om det behövs
+// 2. API URL: Peka direkt på Railway i produktion
 const API_BASE_URL = isLocal
   ? "" 
   : "https://adorable-trust-long-term-memory-api.up.railway.app";
 
 // 3. API KEY: Hämtas från Vercel Environment Variables (SÄKERT)
-let envApiKey = "";
-try {
-  // @ts-ignore
-  if (typeof import.meta !== 'undefined' && import.meta.env) {
-    // @ts-ignore
-    envApiKey = import.meta.env.VITE_API_KEY || "";
-  } else if (typeof process !== 'undefined' && process.env) {
-    envApiKey = process.env.VITE_API_KEY || "";
-  }
-} catch (e) {
-  console.warn("Could not read environment variables", e);
-}
-
-const API_KEY = envApiKey;
+// FIX: Tog bort 'process.env' checken som kraschade bygget. Vite använder import.meta.env.
+const API_KEY = import.meta.env.VITE_API_KEY || "";
 
 // --- MOCK DATA ---
 const INITIAL_MEMORY_NODES: MemoryNode[] = [
@@ -71,7 +59,6 @@ const INITIAL_MEMORY_NODES: MemoryNode[] = [
   { id: 'm3', content: "User prefers dark, modern UI designs.", createdAt: Date.now() },
 ];
 
-// FIX: Manuell hantering av millisekunder för att undvika TS-fel
 const getTimestamp = () => {
   const now = new Date();
   const time = now.toLocaleTimeString('sv-SE', { hour12: false, hour: '2-digit', minute:'2-digit', second:'2-digit' });
@@ -91,7 +78,6 @@ function App() {
   const [useDemoMode, setUseDemoMode] = useState(true);
   const [activeTab, setActiveTab] = useState<'canvas' | 'config'>('canvas');
   
-  // State variables som orsakade TS-fel tidigare
   const [userId, setUserId] = useState('demo-user-001');
   const [agentId, setAgentId] = useState('demo-agent-alpha');
   
@@ -163,12 +149,19 @@ function App() {
         setMemoryNodes(prev => [...prev, newMemoryNode]);
         addLog(`Memory vector stored in local index`, 'success', `${(performance.now() - saveStart).toFixed(0)}ms`);
       } else {
-        addLog(`POST /api/memory - Storing to Vector DB...`, 'info');
-        await fetch(`${API_BASE_URL}/api/memory`, {
+        addLog(`POST /api/memory/store - Storing to Vector DB...`, 'info');
+        
+        // FIX: Uppdaterad URL till /store och korrekt payload (sessionId & text)
+        await fetch(`${API_BASE_URL}/api/memory/store`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
-          body: JSON.stringify({ sessionId: agentId,text: userText, metadata: { userId } })
+          body: JSON.stringify({ 
+            sessionId: agentId, 
+            text: userText,
+            metadata: { userId }
+          })
         });
+
         setMemoryNodes(prev => [...prev, newMemoryNode]);
         addLog(`Memory successfully persisted to Railway`, 'success', `${(performance.now() - saveStart).toFixed(0)}ms`);
       }
@@ -182,16 +175,24 @@ function App() {
         hits = await mockSearch(userText, memoryNodes);
       } else {
         addLog(`POST /api/memory/search - Calculating Cosine Similarity...`, 'info');
+        
+        // FIX: Uppdaterad URL till /search och korrekt payload (sessionId)
         const res = await fetch(`${API_BASE_URL}/api/memory/search`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
-          body: JSON.stringify({ sessionId: agentId, userId, query: userText, limit: 3 })
+          body: JSON.stringify({ 
+            sessionId: agentId, 
+            query: userText, 
+            limit: 3 
+          })
         });
+        
         const data = await res.json();
+        // Mappar API-svaret till vår interna MemoryNode-struktur
         hits = (data.results || []).map((r: any) => ({
-          id: `temp-${Date.now()}-${Math.random()}`,
-          content: r.content,
-          createdAt: Date.now(),
+          id: r.id || `temp-${Date.now()}-${Math.random()}`,
+          content: r.text || r.content, // Hanterar både text och content om APIet ändras
+          createdAt: r.createdAt ? new Date(r.createdAt).getTime() : Date.now(),
           similarity: r.similarity
         }));
       }
@@ -261,12 +262,10 @@ function App() {
                 </div>
                 <div className="space-y-4">
                   <label className="text-xs text-slate-500 uppercase">User ID</label>
-                  {/* ANVÄNDNING HÄR: setUserId */}
                   <input type="text" value={userId} onChange={e => setUserId(e.target.value)} className="w-full bg-black/20 border border-[#27272a] rounded p-2 text-sm font-mono" />
                 </div>
                 {!useDemoMode && !API_KEY && (
                   <div className="text-red-400 text-xs flex items-center gap-2 border border-red-500/20 bg-red-900/10 p-2 rounded">
-                    {/* ANVÄNDNING HÄR: Key */}
                     <Key size={14}/> 
                     <span>Missing <b>VITE_API_KEY</b> in Vercel Settings</span>
                   </div>
