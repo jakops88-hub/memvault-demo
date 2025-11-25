@@ -51,10 +51,12 @@ const API_BASE_URL = isLocal
 // 3. API KEY: Hämtas från Vercel Environment Variables (SÄKERT)
 let envApiKey = "";
 try {
-  // @ts-ignore - Ignorera TS-fel om import.meta
+  // @ts-ignore
   if (typeof import.meta !== 'undefined' && import.meta.env) {
     // @ts-ignore
     envApiKey = import.meta.env.VITE_API_KEY || "";
+  } else if (typeof process !== 'undefined' && process.env) {
+    envApiKey = process.env.VITE_API_KEY || "";
   }
 } catch (e) {
   console.warn("Could not read environment variables", e);
@@ -165,7 +167,7 @@ function App() {
         await fetch(`${API_BASE_URL}/api/memory`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
-          body: JSON.stringify({ agentId, userId, content: userText })
+          body: JSON.stringify({ sessionId: agentId,text: userText, metadata: { userId } })
         });
         setMemoryNodes(prev => [...prev, newMemoryNode]);
         addLog(`Memory successfully persisted to Railway`, 'success', `${(performance.now() - saveStart).toFixed(0)}ms`);
@@ -183,7 +185,7 @@ function App() {
         const res = await fetch(`${API_BASE_URL}/api/memory/search`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
-          body: JSON.stringify({ agentId, userId, query: userText, limit: 3 })
+          body: JSON.stringify({ sessionId: agentId, userId, query: userText, limit: 3 })
         });
         const data = await res.json();
         hits = (data.results || []).map((r: any) => ({
