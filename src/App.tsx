@@ -38,17 +38,33 @@ interface LogEntry {
   latency?: string;
 }
 
-// --- KONFIGURATION (CORS FIX) ---
-// Vi använder window.location för att avgöra om vi kör lokalt, 
-// vilket undviker problem med 'import.meta' i äldre build-miljöer.
+// --- KONFIGURATION ---
+
+// 1. Avgör om vi kör lokalt
 const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
 
+// 2. API URL: Peka direkt på Railway i produktion, men använd proxy lokalt om det behövs
 const API_BASE_URL = isLocal
   ? "" 
   : "https://adorable-trust-long-term-memory-api.up.railway.app";
 
-// 🔴 VIKTIGT: Lägg in din nyckel här!
-const API_KEY = "a96dbc9964msh0714aee34624b0fp1aba26jsn9c51601cc39f"; 
+// 3. API KEY: Hämtas från Vercel Environment Variables (SÄKERT)
+// Vi använder en fallback-mekanism för att hantera olika byggmiljöer där import.meta kanske inte är fullt stödd
+let envApiKey = "";
+try {
+  // @ts-ignore
+  if (typeof import.meta !== 'undefined' && import.meta.env) {
+    // @ts-ignore
+    envApiKey = import.meta.env.VITE_API_KEY || "";
+  } else if (typeof process !== 'undefined' && process.env) {
+    // Fallback för vissa miljöer
+    envApiKey = process.env.VITE_API_KEY || "";
+  }
+} catch (e) {
+  console.warn("Could not read environment variables", e);
+}
+
+const API_KEY = envApiKey;
 
 // --- MOCK DATA ---
 const INITIAL_MEMORY_NODES: MemoryNode[] = [
@@ -57,8 +73,13 @@ const INITIAL_MEMORY_NODES: MemoryNode[] = [
   { id: 'm3', content: "User prefers dark, modern UI designs.", createdAt: Date.now() },
 ];
 
-// Helper för snygga tidsstämplar
-const getTimestamp = () => new Date().toLocaleTimeString('sv-SE', { hour12: false, hour: '2-digit', minute:'2-digit', second:'2-digit', fractionalSecondDigits: 3 });
+// FIX: Manuell hantering av millisekunder för att undvika TS-fel med 'fractionalSecondDigits'
+const getTimestamp = () => {
+  const now = new Date();
+  const time = now.toLocaleTimeString('sv-SE', { hour12: false, hour: '2-digit', minute:'2-digit', second:'2-digit' });
+  const ms = now.getMilliseconds().toString().padStart(3, '0');
+  return `${time}.${ms}`;
+};
 
 const mockSearch = async (query: string, nodes: MemoryNode[]): Promise<MemoryNode[]> => {
   await new Promise(resolve => setTimeout(resolve, 800));
@@ -69,10 +90,10 @@ const mockSearch = async (query: string, nodes: MemoryNode[]): Promise<MemoryNod
 };
 
 function App() {
-  // --- STATE ---
   const [useDemoMode, setUseDemoMode] = useState(true);
   const [activeTab, setActiveTab] = useState<'canvas' | 'config'>('canvas');
   
+  // FIX: Se till att dessa används i JSX nedan
   const [userId, setUserId] = useState('demo-user-001');
   const [agentId, setAgentId] = useState('demo-agent-alpha');
   
@@ -84,7 +105,6 @@ function App() {
   const [memoryNodes, setMemoryNodes] = useState<MemoryNode[]>(INITIAL_MEMORY_NODES);
   const [activeNodeIds, setActiveNodeIds] = useState<string[]>([]);
   
-  // Terminal Logs
   const [logs, setLogs] = useState<LogEntry[]>([
     { id: 'init', timestamp: getTimestamp(), type: 'system', message: 'System initialized. Waiting for input stream...' }
   ]);
@@ -97,14 +117,12 @@ function App() {
   const canvasEndRef = useRef<HTMLDivElement>(null);
   const logsEndRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scrolls
   useEffect(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), [messages]);
   useEffect(() => {
     if (memoryNodes.length > INITIAL_MEMORY_NODES.length) canvasEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [memoryNodes]);
   useEffect(() => logsEndRef.current?.scrollIntoView({ behavior: "smooth" }), [logs, isTerminalOpen]);
 
-  // --- LOGG FUNKTION ---
   const addLog = (message: string, type: LogEntry['type'] = 'info', latency?: string) => {
     setLogs(prev => [...prev, {
       id: Math.random().toString(36).substr(2, 9),
@@ -115,14 +133,14 @@ function App() {
     }]);
   };
 
-  // --- LOGIK ---
-
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
 
+    // Säkerhetskontroll för Live Mode
     if (!useDemoMode && !API_KEY) {
-      alert("⚠️ API Key saknas! Lägg in den i src/App.tsx.");
+      addLog("Missing VITE_API_KEY in environment variables", 'error');
+      alert("⚠️ Ingen API-nyckel hittades! Lägg till VITE_API_KEY i Vercel Settings.");
       return;
     }
 
@@ -135,12 +153,10 @@ function App() {
     setActiveNodeIds([]);
     setStatus('saving');
 
-    // Starta loggkedjan
     addLog(`Received input: "${userText.substring(0, 20)}..."`, 'info');
     addLog(`Vectorizing content for Agent: ${agentId}...`, 'system');
 
     try {
-      // 1. SPARA MINNE
       const saveStart = performance.now();
       const newMemoryId = Date.now().toString();
       const newMemoryNode: MemoryNode = { id: newMemoryId, content: userText, createdAt: Date.now() };
@@ -160,7 +176,6 @@ function App() {
         addLog(`Memory successfully persisted to Railway`, 'success', `${(performance.now() - saveStart).toFixed(0)}ms`);
       }
 
-      // 2. SÖK MINNE (RAG)
       setStatus('retrieving');
       addLog(`Initiating RAG retrieval sequence...`, 'system');
       const searchStart = performance.now();
@@ -193,13 +208,11 @@ function App() {
         addLog(`No relevant previous context found`, 'warning', `${searchLatency}ms`);
       }
 
-      // Highlighta noder
       const hitIds = memoryNodes
         .filter(node => hits.some(hit => node.content.includes(hit.content) || hit.content.includes(node.content)))
         .map(n => n.id);
       setActiveNodeIds(hitIds);
 
-      // 3. AI SVAR
       setStatus('idle');
       const aiResponse = hits.length > 0 
         ? `I recalled ${hits.length} related memories.`
@@ -220,8 +233,6 @@ function App() {
 
   return (
     <div className="flex h-screen bg-[#09090b] text-slate-200 font-sans overflow-hidden">
-      
-      {/* --- VÄNSTER PANEL (30%) --- */}
       <aside className="w-[380px] flex flex-col border-r border-[#27272a] bg-[#18181b] z-20 shadow-2xl">
         <div className="p-4 border-b border-[#27272a] flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -235,7 +246,6 @@ function App() {
             <button onClick={() => setActiveTab('config')} className={`p-1.5 rounded-md ${activeTab === 'config' ? 'bg-blue-600 text-white' : 'text-slate-500'}`}><Server size={16}/></button>
           </div>
         </div>
-
         <div className="flex-1 overflow-hidden flex flex-col relative">
           {activeTab === 'config' ? (
              <div className="p-6 space-y-6">
@@ -252,6 +262,18 @@ function App() {
                   <label className="text-xs text-slate-500 uppercase">Agent ID</label>
                   <input type="text" value={agentId} onChange={e => setAgentId(e.target.value)} className="w-full bg-black/20 border border-[#27272a] rounded p-2 text-sm font-mono" />
                 </div>
+                <div className="space-y-4">
+                  <label className="text-xs text-slate-500 uppercase">User ID</label>
+                  {/* FIX: setUserId används nu här */}
+                  <input type="text" value={userId} onChange={e => setUserId(e.target.value)} className="w-full bg-black/20 border border-[#27272a] rounded p-2 text-sm font-mono" />
+                </div>
+                {!useDemoMode && !API_KEY && (
+                  <div className="text-red-400 text-xs flex items-center gap-2 border border-red-500/20 bg-red-900/10 p-2 rounded">
+                    {/* FIX: Key används nu här */}
+                    <Key size={14}/> 
+                    <span>Missing <b>VITE_API_KEY</b> in Vercel Settings</span>
+                  </div>
+                )}
              </div>
           ) : (
             <>
@@ -275,14 +297,9 @@ function App() {
           )}
         </div>
       </aside>
-
-      {/* --- HÖGER PANEL: CANVAS + TERMINAL (70%) --- */}
       <main className="flex-1 relative bg-[#09090b] flex flex-col overflow-hidden">
-        
-        {/* Canvas Area */}
         <div className="flex-1 overflow-y-auto relative p-8 pb-32">
           <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
-          
           <div className="flex items-center justify-between mb-6">
              <div className="bg-black/40 backdrop-blur-md border border-white/5 px-3 py-1.5 rounded-full flex items-center gap-2 text-xs text-slate-400">
                 <Database size={12} /><span>Memory Nodes: {memoryNodes.length}</span>
@@ -292,7 +309,6 @@ function App() {
                 {status.toUpperCase()}
              </div>
           </div>
-
           <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 max-w-7xl mx-auto">
             {memoryNodes.map((node) => {
               const isActive = activeNodeIds.includes(node.id);
@@ -316,33 +332,16 @@ function App() {
             <div ref={canvasEndRef} />
           </div>
         </div>
-
-        {/* --- TERMINAL CONSOLE --- */}
         <div className={`border-t border-[#27272a] bg-[#0c0c0e] transition-all duration-300 ease-in-out flex flex-col ${isTerminalOpen ? 'h-64' : 'h-10'}`}>
-          <div 
-            onClick={() => setIsTerminalOpen(!isTerminalOpen)}
-            className="h-10 border-b border-[#27272a] bg-[#18181b] flex items-center justify-between px-4 cursor-pointer hover:bg-[#27272a] transition-colors"
-          >
-            <div className="flex items-center gap-2 text-xs font-mono text-slate-400">
-              <TerminalIcon size={12} />
-              <span className="font-bold">SYSTEM TERMINAL</span>
-              {status !== 'idle' && <span className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse ml-2"></span>}
-            </div>
+          <div onClick={() => setIsTerminalOpen(!isTerminalOpen)} className="h-10 border-b border-[#27272a] bg-[#18181b] flex items-center justify-between px-4 cursor-pointer hover:bg-[#27272a] transition-colors">
+            <div className="flex items-center gap-2 text-xs font-mono text-slate-400"><TerminalIcon size={12} /><span className="font-bold">SYSTEM TERMINAL</span>{status !== 'idle' && <span className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse ml-2"></span>}</div>
             {isTerminalOpen ? <ChevronDown size={14} className="text-slate-500"/> : <ChevronUp size={14} className="text-slate-500"/>}
           </div>
-
           <div className="flex-1 overflow-y-auto p-4 font-mono text-xs space-y-1.5 bg-black/50">
             {logs.map((log) => (
               <div key={log.id} className="flex gap-3 group hover:bg-white/5 p-0.5 rounded px-2">
                 <span className="text-slate-600 shrink-0 select-none">[{log.timestamp}]</span>
-                <span className={`shrink-0 w-16 uppercase font-bold text-[10px] pt-0.5 ${
-                  log.type === 'info' ? 'text-blue-400' : 
-                  log.type === 'success' ? 'text-green-400' : 
-                  log.type === 'warning' ? 'text-yellow-400' : 
-                  log.type === 'error' ? 'text-red-400' : 'text-slate-500'
-                }`}>
-                  {log.type}
-                </span>
+                <span className={`shrink-0 w-16 uppercase font-bold text-[10px] pt-0.5 ${log.type === 'info' ? 'text-blue-400' : log.type === 'success' ? 'text-green-400' : log.type === 'warning' ? 'text-yellow-400' : log.type === 'error' ? 'text-red-400' : 'text-slate-500'}`}>{log.type}</span>
                 <span className="text-slate-300 break-all">{log.message}</span>
                 {log.latency && <span className="ml-auto text-slate-600 text-[10px] select-none">{log.latency}</span>}
               </div>
@@ -350,7 +349,6 @@ function App() {
             <div ref={logsEndRef} />
           </div>
         </div>
-
       </main>
     </div>
   );
