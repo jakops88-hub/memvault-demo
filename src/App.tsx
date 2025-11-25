@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { 
   Send, 
   Database, 
@@ -49,7 +49,6 @@ const API_BASE_URL = isLocal
   : "https://adorable-trust-long-term-memory-api.up.railway.app";
 
 // 3. API KEY: Hämtas från Vercel Environment Variables (SÄKERT)
-// Vi använder en fallback-mekanism för att hantera olika byggmiljöer där import.meta kanske inte är fullt stödd
 let envApiKey = "";
 try {
   // @ts-ignore
@@ -57,7 +56,6 @@ try {
     // @ts-ignore
     envApiKey = import.meta.env.VITE_API_KEY || "";
   } else if (typeof process !== 'undefined' && process.env) {
-    // Fallback för vissa miljöer
     envApiKey = process.env.VITE_API_KEY || "";
   }
 } catch (e) {
@@ -73,7 +71,7 @@ const INITIAL_MEMORY_NODES: MemoryNode[] = [
   { id: 'm3', content: "User prefers dark, modern UI designs.", createdAt: Date.now() },
 ];
 
-// FIX: Manuell hantering av millisekunder för att undvika TS-fel med 'fractionalSecondDigits'
+// FIX: Manuell hantering av millisekunder för att undvika TS-fel
 const getTimestamp = () => {
   const now = new Date();
   const time = now.toLocaleTimeString('sv-SE', { hour12: false, hour: '2-digit', minute:'2-digit', second:'2-digit' });
@@ -93,7 +91,7 @@ function App() {
   const [useDemoMode, setUseDemoMode] = useState(true);
   const [activeTab, setActiveTab] = useState<'canvas' | 'config'>('canvas');
   
-  // FIX: Se till att dessa används i JSX nedan
+  // State variables som orsakade TS-fel tidigare
   const [userId, setUserId] = useState('demo-user-001');
   const [agentId, setAgentId] = useState('demo-agent-alpha');
   
@@ -137,7 +135,6 @@ function App() {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
 
-    // Säkerhetskontroll för Live Mode
     if (!useDemoMode && !API_KEY) {
       addLog("Missing VITE_API_KEY in environment variables", 'error');
       alert("⚠️ Ingen API-nyckel hittades! Lägg till VITE_API_KEY i Vercel Settings.");
@@ -264,12 +261,12 @@ function App() {
                 </div>
                 <div className="space-y-4">
                   <label className="text-xs text-slate-500 uppercase">User ID</label>
-                  {/* FIX: setUserId används nu här */}
+                  {/* ANVÄNDNING HÄR: setUserId */}
                   <input type="text" value={userId} onChange={e => setUserId(e.target.value)} className="w-full bg-black/20 border border-[#27272a] rounded p-2 text-sm font-mono" />
                 </div>
                 {!useDemoMode && !API_KEY && (
                   <div className="text-red-400 text-xs flex items-center gap-2 border border-red-500/20 bg-red-900/10 p-2 rounded">
-                    {/* FIX: Key används nu här */}
+                    {/* ANVÄNDNING HÄR: Key */}
                     <Key size={14}/> 
                     <span>Missing <b>VITE_API_KEY</b> in Vercel Settings</span>
                   </div>
