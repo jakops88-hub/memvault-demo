@@ -51,12 +51,10 @@ const API_BASE_URL = isLocal
 // 3. API KEY: Hämtas från Vercel Environment Variables (SÄKERT)
 let envApiKey = "";
 try {
-  // @ts-ignore
+  // @ts-ignore - Ignorera TS-fel om import.meta
   if (typeof import.meta !== 'undefined' && import.meta.env) {
     // @ts-ignore
     envApiKey = import.meta.env.VITE_API_KEY || "";
-  } else if (typeof process !== 'undefined' && process.env) {
-    envApiKey = process.env.VITE_API_KEY || "";
   }
 } catch (e) {
   console.warn("Could not read environment variables", e);
