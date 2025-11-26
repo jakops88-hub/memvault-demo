@@ -39,8 +39,10 @@ interface LogEntry {
 }
 
 // --- KONFIGURATION ---
-const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-const API_BASE_URL = isLocal ? "" : "https://adorable-trust-long-term-memory-api.up.railway.app";
+// FIX: Vi pekar alltid på Railway, oavsett var appen körs
+const API_BASE_URL = "https://adorable-trust-long-term-memory-api.up.railway.app";
+
+// FIX: Hämtar nyckeln säkert från Vercels miljövariabler
 const API_KEY = import.meta.env.VITE_API_KEY || "";
 
 const getTimestamp = () => {
@@ -50,7 +52,7 @@ const getTimestamp = () => {
   return `${time}.${ms}`;
 };
 
-// --- KOMPONENT: Visualisering av API-processen ---
+// --- KOMPONENT: Visualisering ---
 const ProcessingVisualizer = ({ status }: { status: 'idle' | 'saving' | 'retrieving' | 'error' }) => {
   if (status === 'idle') return null;
 
@@ -69,7 +71,7 @@ const ProcessingVisualizer = ({ status }: { status: 'idle' | 'saving' | 'retriev
 
         <ArrowRight className={`text-slate-600 ${status === 'saving' ? 'animate-pulse text-blue-400' : ''}`} size={20} />
 
-        {/* Steg 2: Embedding (OpenAI) */}
+        {/* Steg 2: Embedding */}
         <div className={`flex flex-col items-center gap-2 transition-all duration-300 ${status === 'saving' ? 'scale-110 opacity-100' : 'opacity-50'}`}>
           <div className={`w-12 h-12 rounded-xl flex items-center justify-center border shadow-xl ${status === 'saving' ? 'bg-blue-600 border-blue-400 shadow-blue-500/20' : 'bg-slate-800 border-slate-600'}`}>
             <Cpu size={24} className="text-white" />
@@ -79,7 +81,7 @@ const ProcessingVisualizer = ({ status }: { status: 'idle' | 'saving' | 'retriev
 
         <ArrowRight className={`text-slate-600 ${status === 'retrieving' ? 'animate-pulse text-green-400' : ''}`} size={20} />
 
-        {/* Steg 3: Vector DB (Search) */}
+        {/* Steg 3: Vector DB */}
         <div className={`flex flex-col items-center gap-2 transition-all duration-300 ${status === 'retrieving' ? 'scale-110 opacity-100' : 'opacity-50'}`}>
           <div className={`w-12 h-12 rounded-xl flex items-center justify-center border shadow-xl ${status === 'retrieving' ? 'bg-green-600 border-green-400 shadow-green-500/20' : 'bg-slate-800 border-slate-600'}`}>
             <Database size={24} className="text-white" />
@@ -88,36 +90,27 @@ const ProcessingVisualizer = ({ status }: { status: 'idle' | 'saving' | 'retriev
         </div>
 
       </div>
-      
-      {/* Bakgrundseffekt */}
-      <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
-         <div className={`absolute top-1/2 left-1/4 w-20 h-20 bg-blue-500/20 blur-2xl rounded-full transition-opacity ${status === 'saving' ? 'opacity-100' : 'opacity-0'}`}></div>
-         <div className={`absolute top-1/2 right-1/4 w-20 h-20 bg-green-500/20 blur-2xl rounded-full transition-opacity ${status === 'retrieving' ? 'opacity-100' : 'opacity-0'}`}></div>
-      </div>
     </div>
   );
 };
 
 function App() {
   const [activeTab, setActiveTab] = useState<'canvas' | 'config'>('canvas');
-  
   const [userId, setUserId] = useState('demo-user-001');
   const [agentId, setAgentId] = useState('demo-agent-alpha');
-  
   const [input, setInput] = useState('');
+  
   const [messages, setMessages] = useState<Message[]>([
-    { id: '1', role: 'assistant', content: 'Connected to Neural Core. I will remember everything you tell me.', timestamp: Date.now() }
+    { id: '1', role: 'assistant', content: 'Connected to Neural Core. I remember everything.', timestamp: Date.now() }
   ]);
   
-  // FIX: Startar med tom array istället för mock-data
   const [memoryNodes, setMemoryNodes] = useState<MemoryNode[]>([]);
   const [activeNodeIds, setActiveNodeIds] = useState<string[]>([]);
   
   const [logs, setLogs] = useState<LogEntry[]>([
-    { id: 'init', timestamp: getTimestamp(), type: 'system', message: 'Connection established to Railway API.' }
+    { id: 'init', timestamp: getTimestamp(), type: 'system', message: 'System initialized via Vercel Edge Network.' }
   ]);
   const [isTerminalOpen, setIsTerminalOpen] = useState(true);
-
   const [isLoading, setIsLoading] = useState(false);
   const [status, setStatus] = useState<'idle' | 'saving' | 'retrieving' | 'error'>('idle');
 
@@ -147,7 +140,7 @@ function App() {
 
     if (!API_KEY) {
       addLog("Missing VITE_API_KEY in environment variables", 'error');
-      alert("⚠️ Ingen API-nyckel hittades! Lägg till VITE_API_KEY i Vercel Settings.");
+      alert("⚠️ Saknar API-nyckel! Lägg till VITE_API_KEY i Vercel Settings under Environment Variables.");
       return;
     }
 
@@ -159,16 +152,15 @@ function App() {
     setIsLoading(true);
     setActiveNodeIds([]);
     
-    // Steg 1: Saving
     setStatus('saving');
     addLog(`Received input: "${userText.substring(0, 20)}..."`, 'info');
-    addLog(`Generating Embeddings via OpenAI...`, 'system');
+    addLog(`Vectorizing content for Agent: ${agentId}...`, 'system');
 
     try {
       const saveStart = performance.now();
       
-      // LIVE API CALL: Store
-      await fetch(`${API_BASE_URL}/api/memory/store`, {
+      // 1. STORE MEMORY
+      const storeRes = await fetch(`${API_BASE_URL}/api/memory/store`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
         body: JSON.stringify({ 
@@ -178,17 +170,20 @@ function App() {
         })
       });
 
+      if (!storeRes.ok) {
+        throw new Error(`Store failed: ${storeRes.status} ${storeRes.statusText}`);
+      }
+
       const newMemoryNode: MemoryNode = { id: Date.now().toString(), content: userText, createdAt: Date.now() };
       setMemoryNodes(prev => [...prev, newMemoryNode]);
       addLog(`Vector stored in pgvector database`, 'success', `${(performance.now() - saveStart).toFixed(0)}ms`);
 
-      // Steg 2: Retrieving
+      // 2. SEARCH MEMORY
       setStatus('retrieving');
-      addLog(`Calculating Cosine Similarity...`, 'system');
+      addLog(`Initiating RAG retrieval sequence...`, 'system');
       const searchStart = performance.now();
       
-      // LIVE API CALL: Search
-      const res = await fetch(`${API_BASE_URL}/api/memory/search`, {
+      const searchRes = await fetch(`${API_BASE_URL}/api/memory/search`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
         body: JSON.stringify({ 
@@ -197,10 +192,14 @@ function App() {
           limit: 3 
         })
       });
+
+      if (!searchRes.ok) {
+        throw new Error(`Search failed: ${searchRes.status} ${searchRes.statusText}`);
+      }
       
-      const data = await res.json();
+      const data = await searchRes.json();
       const hits = (data.results || []).map((r: any) => ({
-        id: r.id, // Vi litar på att IDt från DB är unikt nog
+        id: r.id, 
         content: r.text || r.content,
         createdAt: r.createdAt ? new Date(r.createdAt).getTime() : Date.now(),
         similarity: r.similarity
@@ -215,12 +214,11 @@ function App() {
         addLog(`No relevant previous context found`, 'warning', `${searchLatency}ms`);
       }
 
-      // Markera noder som matchar (jämför content eftersom IDt kan vara nytt i sessionen)
       const hitIds = memoryNodes
         .filter(node => hits.some((hit: MemoryNode) => node.content === hit.content))
         .map(n => n.id);
-        
-      // Lägg även till IDt på det vi just skapade om det dök upp i sökningen
+      
+      // Lägg till den nya om den dök upp
       hits.forEach((hit: MemoryNode) => {
          if (hit.content === userText) hitIds.push(newMemoryNode.id);
       });
@@ -238,7 +236,7 @@ function App() {
     } catch (error) {
       console.error(error);
       setStatus('error');
-      addLog(`Connection Error: Is the Backend running?`, 'error');
+      addLog(`Critical Error: ${String(error)}`, 'error');
       setMessages(prev => [...prev, { id: Date.now().toString(), role: 'system', content: "Error: Could not reach memory core.", timestamp: Date.now() }]);
     } finally {
       setIsLoading(false);
@@ -314,7 +312,7 @@ function App() {
       </aside>
       <main className="flex-1 relative bg-[#050507] flex flex-col overflow-hidden">
         
-        {/* HEADER FÖR VISUALISERINGEN */}
+        {/* HEADER */}
         <div className="h-16 border-b border-[#27272a] flex items-center justify-between px-8 bg-[#0a0a0c]">
            <div className="flex items-center gap-2 text-sm font-medium text-slate-400">
               <Network size={16} className="text-slate-500"/>
@@ -333,7 +331,7 @@ function App() {
         <div className="flex-1 overflow-y-auto relative p-8 pb-32 bg-grid-pattern">
           <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at center, #1d1d20 1px, transparent 1px)', backgroundSize: '24px 24px', opacity: 0.4 }}></div>
           
-          {/* NY VISUALISERINGS-KOMPONENT HÄR */}
+          {/* VISUALISERING */}
           <div className="max-w-5xl mx-auto">
             <ProcessingVisualizer status={status} />
 
@@ -372,6 +370,7 @@ function App() {
           </div>
         </div>
 
+        {/* LOGS */}
         <div className={`border-t border-[#27272a] bg-[#0a0a0c] transition-all duration-300 ease-in-out flex flex-col shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.5)] ${isTerminalOpen ? 'h-64' : 'h-9'}`}>
           <div onClick={() => setIsTerminalOpen(!isTerminalOpen)} className="h-9 border-b border-[#27272a] bg-[#18181b] flex items-center justify-between px-4 cursor-pointer hover:bg-[#27272a] transition-colors select-none">
             <div className="flex items-center gap-2 text-[10px] font-mono font-bold text-slate-400 tracking-wider">
