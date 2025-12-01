@@ -6,12 +6,12 @@ import {
   Zap, 
   Layout, 
   Server, 
-  ToggleRight, 
-  ToggleLeft,
   Terminal as TerminalIcon,
   ChevronUp,
-  ChevronDown
-} from 'lucide-react'; // Tog bort Key och Activity härifrån
+  ChevronDown,
+  Activity,
+  Globe // Ny ikon för Live-status
+} from 'lucide-react';
 import NeuralGraph from './components/NeuralGraph';
 
 interface Message {
@@ -36,7 +36,7 @@ interface LogEntry {
   latency?: string;
 }
 
-// Vi definierar graf-typerna här för att hjälpa TypeScript
+// Typ-definitioner för grafen
 interface GraphNodeType {
   id: string;
   text: string;
@@ -51,16 +51,10 @@ interface GraphLinkType {
   similarity: number;
 }
 
+// Konfiguration
 const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
 const API_BASE_URL = isLocal ? "" : "https://adorable-trust-long-term-memory-api.up.railway.app";
 const API_KEY = import.meta.env.VITE_API_KEY || "";
-
-const INITIAL_MEMORY_NODES: MemoryNode[] = [
-  { id: 'm1', content: "MemVault is a Long Term Memory API for AI Agents.", createdAt: Date.now() },
-  { id: 'm2', content: "The project uses Node.js, Express and Vector Databases.", createdAt: Date.now() },
-  { id: 'm3', content: "User prefers dark, modern UI designs.", createdAt: Date.now() },
-  { id: 'm4', content: "System runs on Docker containers.", createdAt: Date.now() },
-];
 
 const getTimestamp = () => {
   const now = new Date();
@@ -69,20 +63,11 @@ const getTimestamp = () => {
   return `${time}.${ms}`;
 };
 
-const mockSearch = async (query: string, nodes: MemoryNode[]): Promise<MemoryNode[]> => {
-  await new Promise(resolve => setTimeout(resolve, 800));
-  const lowerQuery = query.toLowerCase();
-  return nodes.filter(node => 
-    lowerQuery.split(' ').some(word => word.length > 3 && node.content.toLowerCase().includes(word))
-  ).map(node => ({ ...node, similarity: 0.8 + Math.random() * 0.2 }));
-};
-
 function App() {
-  const [useDemoMode, setUseDemoMode] = useState(true);
-  const [activeTab, setActiveTab] = useState<'canvas' | 'config'>('canvas');
+  // VIKTIGT: useDemoMode är nu alltid false (Live Mode)
+  const useDemoMode = false; 
   
-  // Tog bort oanvänd setUserId om den inte används i JSX, 
-  // men behåller state om du vill ha kvar input-fältet.
+  const [activeTab, setActiveTab] = useState<'canvas' | 'config'>('canvas');
   const [userId, setUserId] = useState('demo-user-001'); 
   const [agentId, setAgentId] = useState('demo-agent-alpha');
   
@@ -90,14 +75,14 @@ function App() {
   const [lastQuery, setLastQuery] = useState<string | null>(null);
   
   const [messages, setMessages] = useState<Message[]>([
-    { id: '1', role: 'assistant', content: 'Neural Core Online. Visualizer ready.', timestamp: Date.now() }
+    { id: '1', role: 'assistant', content: 'Neural Core Online. Connected to Live Vector Database.', timestamp: Date.now() }
   ]);
   
-  const [memoryNodes, setMemoryNodes] = useState<MemoryNode[]>(INITIAL_MEMORY_NODES);
+  const [memoryNodes, setMemoryNodes] = useState<MemoryNode[]>([]); // Startar tom i Live-läge
   const [activeNodeIds, setActiveNodeIds] = useState<string[]>([]);
   
   const [logs, setLogs] = useState<LogEntry[]>([
-    { id: 'init', timestamp: getTimestamp(), type: 'system', message: 'System initialized. Neural interface active.' }
+    { id: 'init', timestamp: getTimestamp(), type: 'system', message: 'System initialized. Production Link Established.' }
   ]);
   const [isTerminalOpen, setIsTerminalOpen] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
@@ -110,7 +95,6 @@ function App() {
   useEffect(() => logsEndRef.current?.scrollIntoView({ behavior: "smooth" }), [logs, isTerminalOpen]);
 
   const graphData = useMemo(() => {
-    // FIX: Tvinga typen här så TS inte tror det bara är 'memory'
     const nodes: GraphNodeType[] = memoryNodes.map(m => ({
       id: m.id,
       text: m.content,
@@ -123,15 +107,13 @@ function App() {
       nodes.push({
         id: 'active-query',
         text: lastQuery,
-        type: 'query', // Nu är detta tillåtet
+        type: 'query',
         val: 25,
         timestamp: getTimestamp()
       });
     }
 
-    // FIX: Ge länkar en explicit typ
     const links: GraphLinkType[] = [];
-    
     if (lastQuery && activeNodeIds.length > 0) {
       activeNodeIds.forEach(targetId => {
         const targetNode = memoryNodes.find(n => n.id === targetId);
@@ -159,9 +141,9 @@ function App() {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
 
-    if (!useDemoMode && !API_KEY) {
+    if (!API_KEY) {
       addLog("Missing VITE_API_KEY", 'error');
-      alert("⚠️ Ingen API-nyckel hittades!");
+      alert("⚠️ Ingen API-nyckel hittades! Lägg till VITE_API_KEY i Vercel Settings.");
       return;
     }
 
@@ -181,41 +163,31 @@ function App() {
       const newMemoryId = Date.now().toString();
       const newMemoryNode: MemoryNode = { id: newMemoryId, content: userText, createdAt: Date.now() };
 
-      if (useDemoMode) {
-        await new Promise(r => setTimeout(r, 600));
-        setMemoryNodes(prev => [...prev, newMemoryNode]);
-        addLog(`Vector stored (Simulated)`, 'success', `${(performance.now() - saveStart).toFixed(0)}ms`);
-      } else {
-        await fetch(`${API_BASE_URL}/api/memory/store`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
-          body: JSON.stringify({ sessionId: agentId, text: userText, metadata: { userId } })
-        });
-        setMemoryNodes(prev => [...prev, newMemoryNode]);
-        addLog(`Persisted to Vector DB`, 'success');
-      }
+      // Endast Live Logic nu
+      await fetch(`${API_BASE_URL}/api/memory/store`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
+        body: JSON.stringify({ sessionId: agentId, text: userText, metadata: { userId } })
+      });
+      setMemoryNodes(prev => [...prev, newMemoryNode]);
+      addLog(`Persisted to Vector DB`, 'success', `${(performance.now() - saveStart).toFixed(0)}ms`);
 
       setStatus('retrieving');
       addLog(`Calculating semantic distance...`, 'system');
       const searchStart = performance.now();
-      let hits: MemoryNode[] = [];
-
-      if (useDemoMode) {
-        hits = await mockSearch(userText, memoryNodes);
-      } else {
-        const res = await fetch(`${API_BASE_URL}/api/memory/search`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
-          body: JSON.stringify({ sessionId: agentId, query: userText, limit: 3 })
-        });
-        const data = await res.json();
-        hits = (data.results || []).map((r: any) => ({
-          id: r.id || `temp-${Date.now()}`,
-          content: r.text || r.content,
-          createdAt: r.createdAt ? new Date(r.createdAt).getTime() : Date.now(),
-          similarity: r.similarity
-        }));
-      }
+      
+      const res = await fetch(`${API_BASE_URL}/api/memory/search`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
+        body: JSON.stringify({ sessionId: agentId, query: userText, limit: 3 })
+      });
+      const data = await res.json();
+      const hits: MemoryNode[] = (data.results || []).map((r: any) => ({
+        id: r.id || `temp-${Date.now()}`,
+        content: r.text || r.content,
+        createdAt: r.createdAt ? new Date(r.createdAt).getTime() : Date.now(),
+        similarity: r.similarity
+      }));
 
       const searchLatency = (performance.now() - searchStart).toFixed(0);
       
@@ -270,20 +242,19 @@ function App() {
         <div className="flex-1 overflow-hidden flex flex-col relative">
           {activeTab === 'config' ? (
              <div className="p-6 space-y-6">
-                <div className={`p-4 rounded-xl border ${useDemoMode ? 'bg-purple-900/10 border-purple-500/20' : 'bg-green-900/10 border-green-500/20'}`}>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-bold uppercase">{useDemoMode ? 'Simulation Mode' : 'Production API'}</span>
-                    <button onClick={() => setUseDemoMode(!useDemoMode)}>
-                      {useDemoMode ? <ToggleRight className="text-purple-400" size={24}/> : <ToggleLeft className="text-green-400" size={24}/>}
-                    </button>
+                {/* UPPGRADADERAT STATUS-KORT (Ingen toggle) */}
+                <div className="p-4 rounded-xl border bg-green-900/10 border-green-500/20">
+                  <div className="flex items-center gap-3 mb-2">
+                    <Globe className="text-green-400 animate-pulse" size={20}/>
+                    <span className="text-xs font-bold uppercase text-green-400">Live Connection</span>
                   </div>
-                  <p className="text-[10px] text-slate-400">{useDemoMode ? "Local graph simulation." : "Connected to Vector DB."}</p>
+                  <p className="text-[10px] text-slate-400">Connected to Railway Production DB.</p>
                 </div>
+
                 <div className="space-y-4">
                   <label className="text-xs text-slate-500 uppercase">Agent ID</label>
                   <input type="text" value={agentId} onChange={e => setAgentId(e.target.value)} className="w-full bg-black/20 border border-[#27272a] rounded p-2 text-sm font-mono" />
                 </div>
-                {/* Vi använder setUserId här så TS klagar inte */}
                 <div className="space-y-4">
                   <label className="text-xs text-slate-500 uppercase">User ID</label>
                   <input type="text" value={userId} onChange={e => setUserId(e.target.value)} className="w-full bg-black/20 border border-[#27272a] rounded p-2 text-sm font-mono" />
