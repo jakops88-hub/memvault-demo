@@ -7,55 +7,81 @@
 }
 
 body {
-  @apply bg-background text-slate-200 antialiased;
+  @apply text-slate-200 antialiased;
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+
+  /* --- CYBERPUNK BACKGROUND --- */
+  background-color: #030305; /* Djupaste svart */
+  color: #e0e0e0;
+  
+  /* Scanline-effekt (Subtila ränder över skärmen) */
+  background-image: linear-gradient(rgba(0, 10, 20, 0.1) 50%, transparent 50%);
+  background-size: 100% 4px;
 }
 
-/* Custom scrollbar för en renare look */
+/* Custom scrollbar - Uppdaterad för att matcha temat */
 ::-webkit-scrollbar {
   width: 8px;
 }
 ::-webkit-scrollbar-track {
-  @apply bg-surface;
+  background: #09090b; 
 }
 ::-webkit-scrollbar-thumb {
-  @apply bg-border rounded-full;
+  background: #27272a;
+  border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-slate-600;
+  background: #3f3f46;
 }
+
+/* --- THE NEON HUD TOOLTIP --- */
 .graph-tooltip {
   position: absolute;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(0, 255, 255, 0.2);
-  box-shadow: 0 0 20px rgba(0, 255, 255, 0.1);
-  padding: 12px;
-  border-radius: 8px;
+  /* Mörkare bakgrund med starkare oskärpa */
+  background: rgba(10, 10, 16, 0.9); 
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  
+  /* Neon-kanter och glöd */
+  border: 2px solid rgba(0, 255, 242, 0.3);
+  box-shadow: 
+    0 0 20px rgba(0, 255, 242, 0.2), /* Yttre glöd */
+    inset 0 0 20px rgba(0, 255, 242, 0.05); /* Inre glöd */
+    
+  padding: 16px;
+  border-radius: 4px; /* Lite kantigare för mer tech-känsla */
   pointer-events: none;
-  font-family: 'Courier New', monospace;
-  max-width: 300px;
+  font-family: 'Courier New', monospace; /* Hacker font */
+  max-width: 350px;
   z-index: 1000;
   transition: all 0.1s ease;
+  
+  /* Text-glöd */
+  text-shadow: 0 0 5px rgba(0, 255, 242, 0.5);
 }
 
 .tooltip-header {
-  color: #00ffff;
-  font-size: 0.8rem;
+  color: #00fff2; /* Cyber Cyan */
+  font-size: 0.85rem;
+  font-weight: 800;
   text-transform: uppercase;
-  margin-bottom: 4px;
-  letter-spacing: 1px;
+  margin-bottom: 8px;
+  letter-spacing: 2px;
+  border-bottom: 1px solid rgba(0, 255, 242, 0.3);
+  padding-bottom: 4px;
 }
 
 .tooltip-body {
-  color: #ffffff;
-  font-size: 0.9rem;
-  line-height: 1.4;
+  color: #e6ffff; /* Isvit */
+  font-size: 1rem;
+  line-height: 1.5;
+  font-weight: 500;
 }
 
 .tooltip-meta {
-  margin-top: 8px;
+  margin-top: 12px;
   font-size: 0.7rem;
-  color: #888;
+  color: #8a9eff; /* Retro-lila */
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
