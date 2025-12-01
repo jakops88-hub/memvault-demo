@@ -9,9 +9,8 @@ import {
   Terminal as TerminalIcon,
   ChevronUp,
   ChevronDown,
-  Activity,
-  Globe // Ny ikon för Live-status
-} from 'lucide-react';
+  Globe
+} from 'lucide-react'; // Activity borttagen
 import NeuralGraph from './components/NeuralGraph';
 
 interface Message {
@@ -36,7 +35,6 @@ interface LogEntry {
   latency?: string;
 }
 
-// Typ-definitioner för grafen
 interface GraphNodeType {
   id: string;
   text: string;
@@ -51,7 +49,6 @@ interface GraphLinkType {
   similarity: number;
 }
 
-// Konfiguration
 const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
 const API_BASE_URL = isLocal ? "" : "https://adorable-trust-long-term-memory-api.up.railway.app";
 const API_KEY = import.meta.env.VITE_API_KEY || "";
@@ -64,9 +61,7 @@ const getTimestamp = () => {
 };
 
 function App() {
-  // VIKTIGT: useDemoMode är nu alltid false (Live Mode)
-  const useDemoMode = false; 
-  
+  // Rensat bort useDemoMode helt
   const [activeTab, setActiveTab] = useState<'canvas' | 'config'>('canvas');
   const [userId, setUserId] = useState('demo-user-001'); 
   const [agentId, setAgentId] = useState('demo-agent-alpha');
@@ -78,7 +73,7 @@ function App() {
     { id: '1', role: 'assistant', content: 'Neural Core Online. Connected to Live Vector Database.', timestamp: Date.now() }
   ]);
   
-  const [memoryNodes, setMemoryNodes] = useState<MemoryNode[]>([]); // Startar tom i Live-läge
+  const [memoryNodes, setMemoryNodes] = useState<MemoryNode[]>([]);
   const [activeNodeIds, setActiveNodeIds] = useState<string[]>([]);
   
   const [logs, setLogs] = useState<LogEntry[]>([
@@ -163,7 +158,7 @@ function App() {
       const newMemoryId = Date.now().toString();
       const newMemoryNode: MemoryNode = { id: newMemoryId, content: userText, createdAt: Date.now() };
 
-      // Endast Live Logic nu
+      // Direkt API-anrop (ingen demo-check)
       await fetch(`${API_BASE_URL}/api/memory/store`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
@@ -242,7 +237,6 @@ function App() {
         <div className="flex-1 overflow-hidden flex flex-col relative">
           {activeTab === 'config' ? (
              <div className="p-6 space-y-6">
-                {/* UPPGRADADERAT STATUS-KORT (Ingen toggle) */}
                 <div className="p-4 rounded-xl border bg-green-900/10 border-green-500/20">
                   <div className="flex items-center gap-3 mb-2">
                     <Globe className="text-green-400 animate-pulse" size={20}/>
