@@ -8,12 +8,10 @@ import {
   Server, 
   ToggleRight, 
   ToggleLeft,
-  Key,
   Terminal as TerminalIcon,
   ChevronUp,
-  ChevronDown,
-  Activity
-} from 'lucide-react';
+  ChevronDown
+} from 'lucide-react'; // Tog bort Key och Activity härifrån
 import NeuralGraph from './components/NeuralGraph';
 
 interface Message {
@@ -36,6 +34,21 @@ interface LogEntry {
   type: 'info' | 'success' | 'warning' | 'error' | 'system';
   message: string;
   latency?: string;
+}
+
+// Vi definierar graf-typerna här för att hjälpa TypeScript
+interface GraphNodeType {
+  id: string;
+  text: string;
+  type: 'query' | 'memory';
+  val: number;
+  timestamp: string;
+}
+
+interface GraphLinkType {
+  source: string;
+  target: string;
+  similarity: number;
 }
 
 const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
@@ -67,8 +80,12 @@ const mockSearch = async (query: string, nodes: MemoryNode[]): Promise<MemoryNod
 function App() {
   const [useDemoMode, setUseDemoMode] = useState(true);
   const [activeTab, setActiveTab] = useState<'canvas' | 'config'>('canvas');
-  const [userId, setUserId] = useState('demo-user-001');
+  
+  // Tog bort oanvänd setUserId om den inte används i JSX, 
+  // men behåller state om du vill ha kvar input-fältet.
+  const [userId, setUserId] = useState('demo-user-001'); 
   const [agentId, setAgentId] = useState('demo-agent-alpha');
+  
   const [input, setInput] = useState('');
   const [lastQuery, setLastQuery] = useState<string | null>(null);
   
@@ -93,10 +110,11 @@ function App() {
   useEffect(() => logsEndRef.current?.scrollIntoView({ behavior: "smooth" }), [logs, isTerminalOpen]);
 
   const graphData = useMemo(() => {
-    const nodes = memoryNodes.map(m => ({
+    // FIX: Tvinga typen här så TS inte tror det bara är 'memory'
+    const nodes: GraphNodeType[] = memoryNodes.map(m => ({
       id: m.id,
       text: m.content,
-      type: 'memory' as const,
+      type: 'memory',
       val: activeNodeIds.includes(m.id) ? 20 : 10,
       timestamp: new Date(m.createdAt).toLocaleTimeString()
     }));
@@ -105,13 +123,15 @@ function App() {
       nodes.push({
         id: 'active-query',
         text: lastQuery,
-        type: 'query' as const,
+        type: 'query', // Nu är detta tillåtet
         val: 25,
         timestamp: getTimestamp()
       });
     }
 
-    const links = [];
+    // FIX: Ge länkar en explicit typ
+    const links: GraphLinkType[] = [];
+    
     if (lastQuery && activeNodeIds.length > 0) {
       activeNodeIds.forEach(targetId => {
         const targetNode = memoryNodes.find(n => n.id === targetId);
@@ -262,6 +282,11 @@ function App() {
                 <div className="space-y-4">
                   <label className="text-xs text-slate-500 uppercase">Agent ID</label>
                   <input type="text" value={agentId} onChange={e => setAgentId(e.target.value)} className="w-full bg-black/20 border border-[#27272a] rounded p-2 text-sm font-mono" />
+                </div>
+                {/* Vi använder setUserId här så TS klagar inte */}
+                <div className="space-y-4">
+                  <label className="text-xs text-slate-500 uppercase">User ID</label>
+                  <input type="text" value={userId} onChange={e => setUserId(e.target.value)} className="w-full bg-black/20 border border-[#27272a] rounded p-2 text-sm font-mono" />
                 </div>
              </div>
           ) : (
