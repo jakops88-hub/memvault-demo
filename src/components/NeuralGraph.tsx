@@ -1,4 +1,4 @@
-﻿import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react'; // Tog bort 'React' härifrån
 import ForceGraph2D from 'react-force-graph-2d';
 
 interface GraphNode {
@@ -42,7 +42,6 @@ const NeuralGraph = ({ data = INITIAL_DATA }: { data?: GraphData }) => {
   return (
     <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 0, background: '#050505' }}>
       
-      {/* HOVER CARD */}
       {hoverNode && (
         <div className="graph-tooltip" style={{ 
             position: 'absolute', 
@@ -79,19 +78,16 @@ const NeuralGraph = ({ data = INITIAL_DATA }: { data?: GraphData }) => {
           const glowColor = isQuery ? 'rgba(0, 255, 255, 0.4)' : 'rgba(189, 0, 255, 0.4)';
           const r = node.val ? node.val / 2 : 4;
 
-          // Glow
           ctx.beginPath();
           ctx.arc(node.x, node.y, r * 2, 0, 2 * Math.PI, false);
           ctx.fillStyle = glowColor;
           ctx.fill();
 
-          // Core
           ctx.beginPath();
           ctx.arc(node.x, node.y, r, 0, 2 * Math.PI, false);
           ctx.fillStyle = color;
           ctx.fill();
 
-          // Hover Ring
           if (isHover) {
             ctx.beginPath();
             ctx.arc(node.x, node.y, r * 2.2, 0, 2 * Math.PI, false);
