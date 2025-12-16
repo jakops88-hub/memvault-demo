@@ -224,6 +224,7 @@ export default function BillingPage() {
           </div>
         </CardContent>
       </Card>
-    </div>
+      </div>
+    </>
   );
 }
