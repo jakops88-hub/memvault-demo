@@ -1,6 +1,14 @@
 // API service for backend communication
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000';
+// Ensure we have a valid backend URL without trailing slash
+const API_BASE_URL = (() => {
+  const url = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000';
+  if (!url) {
+    console.warn('⚠️ NEXT_PUBLIC_BACKEND_URL is not set! Using localhost:4000');
+    return 'http://localhost:4000';
+  }
+  return url.replace(/\/$/, '');
+})();
 
 export interface ApiResponse<T> {
   data?: T;
