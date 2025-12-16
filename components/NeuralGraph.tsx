@@ -56,7 +56,8 @@ export function NeuralGraph({ data = INITIAL_DATA }: { data?: GraphData }) {
     }
   }, [data]);
 
-  const paintNode = useCallback((node: GraphNode, ctx: CanvasRenderingContext2D, globalScale: number) => {
+  const paintNode = useCallback((node: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
+    if (!node.type) return;
     const isQuery = node.type === 'query';
     const isHover = node === hoverNode;
 
@@ -118,11 +119,12 @@ export function NeuralGraph({ data = INITIAL_DATA }: { data?: GraphData }) {
     }
   }, [hoverNode]);
 
-  const paintLink = useCallback((link: GraphLink, ctx: CanvasRenderingContext2D, globalScale: number) => {
-    const source = link.source as GraphNode;
-    const target = link.target as GraphNode;
+  const paintLink = useCallback((link: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
+    const source = link.source;
+    const target = link.target;
 
     if (typeof source === 'string' || typeof target === 'string') return;
+    if (!source || !target) return;
 
     const score = link.similarity || 0;
 
