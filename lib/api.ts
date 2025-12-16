@@ -156,4 +156,48 @@ export const userApi = {
       };
     }
   },
+
+  // Get user's API keys
+  async getApiKeys() {
+    // TODO: Replace with real API call when backend endpoint is ready
+    // const response = await fetch(`${API_BASE_URL}/api/user/api-keys`, {
+    //   headers: getAuthHeaders(),
+    // });
+    // if (!response.ok) throw new Error('Failed to fetch API keys');
+    // return response.json();
+
+    // TEMPORARY: Return mock data with current user's API key
+    const apiKey = typeof window !== 'undefined' ? localStorage.getItem('memvault_api_key') : null;
+    
+    if (!apiKey) {
+      return { apiKeys: [] };
+    }
+
+    return {
+      apiKeys: [
+        {
+          id: '1',
+          key: apiKey,
+          name: 'Production Key',
+          createdAt: new Date().toISOString(),
+          lastUsedAt: new Date().toISOString(),
+        }
+      ]
+    };
+  },
+
+  // Delete an API key
+  async deleteApiKey(keyId: string) {
+    // TODO: Replace with real API call when backend endpoint is ready
+    // const response = await fetch(`${API_BASE_URL}/api/user/api-keys/${keyId}`, {
+    //   method: 'DELETE',
+    //   headers: getAuthHeaders(),
+    // });
+    // if (!response.ok) throw new Error('Failed to delete API key');
+    // return response.json();
+
+    // TEMPORARY: Mock deletion (just return success)
+    console.log('Mock: Deleting API key', keyId);
+    return { success: true };
+  },
 };
