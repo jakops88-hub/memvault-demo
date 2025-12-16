@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
 
 interface ManageSubscriptionButtonProps {
   variant?: "default" | "outline";
@@ -15,7 +14,6 @@ export function ManageSubscriptionButton({
   label = "Manage Subscription",
 }: ManageSubscriptionButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
-  const router = useRouter();
 
   const handleClick = async () => {
     try {
