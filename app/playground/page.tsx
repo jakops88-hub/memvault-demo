@@ -203,10 +203,29 @@ export default function PlaygroundPage() {
         if (!storeResponse.ok) {
           const errorText = await storeResponse.text();
           console.error('⚠️ Backend error:', storeResponse.status, errorText);
+          console.error('Full request details:', {
+            url: `${API_BASE_URL}/api/memory/add`,
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey.substring(0, 20) + '...' },
+            body: requestBody
+          });
+          
+          // Parse error if JSON
+          try {
+            const errorJson = JSON.parse(errorText);
+            console.error('Parsed backend error:', errorJson);
+            addLog(`⚠️ Backend error: ${errorJson.error?.message || errorJson.message || 'Unknown'}`, 'error');
+          } catch (e) {
+            addLog(`⚠️ Backend error (${storeResponse.status})`, 'error');
+          }
           
           // Use mock data if backend fails
           useRealAPI = false;
           addLog(`⚠️ Backend error - using local mode`, 'warning');
+        } else {
+          // Success!
+          const responseData = await storeResponse.json();
+          console.log('✅ Memory stored successfully:', responseData);
         }
       } catch (apiError) {
         console.error('⚠️ API call failed:', apiError);
