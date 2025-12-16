@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import {
   Card,
   CardContent,
@@ -13,35 +16,64 @@ import {
   CreditCard,
   Calendar,
   TrendingUp,
+  Loader2,
 } from "lucide-react";
+import { userApi } from "@/lib/api";
+import { DemoUserSetup } from "@/components/DemoUserSetup";
 
 export default function BillingPage() {
-  // Mock data - replace with actual user data from your database
+  const [stats, setStats] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const data = await userApi.getStats();
+        setStats(data);
+      } catch (error) {
+        console.error('Failed to load billing data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadData();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="flex h-[50vh] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
   const currentPlan = {
-    name: "PRO",
+    name: stats?.tier || "HOBBY",
     status: "Active",
-    price: 49,
+    price: stats?.tier === "PRO" ? 99 : 29,
     interval: "month",
     nextBillingDate: "January 15, 2026",
   };
 
   const usage = {
-    current: 45231,
-    limit: 100000,
-    percentage: 45.2,
+    current: stats?.creditsUsed || 0,
+    limit: stats?.creditsLimit || 100000,
+    percentage: stats ? ((stats.creditsUsed / stats.creditsLimit) * 100).toFixed(1) : "0",
   };
 
   return (
-    <div className="space-y-6">
-      {/* Page Header */}
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Billing</h1>
-        <p className="mt-2 text-muted-foreground">
-          Manage your subscription and billing information
-        </p>
-      </div>
+    <>
+      <DemoUserSetup />
+      <div className="space-y-6">
+        {/* Page Header */}
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Billing</h1>
+          <p className="mt-2 text-muted-foreground">
+            Manage your subscription and billing information
+          </p>
+        </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
+        <div className="grid gap-6 md:grid-cols-2">
         {/* Current Plan Card */}
         <Card>
           <CardHeader>

@@ -1,0 +1,55 @@
+"use client";
+
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+
+interface User {
+  id: string;
+  email: string;
+  apiKey: string;
+  tier: 'FREE' | 'HOBBY' | 'PRO';
+}
+
+interface AuthContextType {
+  user: User | null;
+  setUser: (user: User | null) => void;
+  isLoading: boolean;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    // Load user from localStorage on mount
+    const storedUser = localStorage.getItem('memvault_user');
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
+    setIsLoading(false);
+  }, []);
+
+  const setUserWithStorage = (newUser: User | null) => {
+    setUser(newUser);
+    if (newUser) {
+      localStorage.setItem('memvault_user', JSON.stringify(newUser));
+    } else {
+      localStorage.removeItem('memvault_user');
+    }
+  };
+
+  return (
+    <AuthContext.Provider value={{ user, setUser: setUserWithStorage, isLoading }}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+}
