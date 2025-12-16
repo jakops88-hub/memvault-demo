@@ -77,7 +77,8 @@ export default function PricingPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Hobby</CardTitle>
-                <div className="text-3xl font-bold">Coming Soon<span className="text-sm text-muted-foreground block mt-1">Perfect for side projects</span></div>
+                <div className="text-3xl font-bold">$29<span className="text-sm text-muted-foreground">/month</span></div>
+                <p className="text-sm text-muted-foreground">Perfect for side projects</p>
               </CardHeader>
               <CardContent className="space-y-4">
                 <ul className="space-y-2">
@@ -103,7 +104,7 @@ export default function PricingPage() {
                   />
                   <Button
                     onClick={() => handleCheckout('hobby')}
-                    disabled={isLoadingHobby || !process.env.NEXT_PUBLIC_STRIPE_HOBBY_PRICE_ID}
+                    disabled={isLoadingHobby}
                     className="w-full"
                   >
                     {isLoadingHobby ? (
