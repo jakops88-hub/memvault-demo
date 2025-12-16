@@ -69,7 +69,6 @@ const getTimestamp = () => {
 };
 
 export default function PlaygroundPage() {
-  const [userId] = useState('demo-user-001');
   const [agentId] = useState('demo-agent-alpha');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -158,7 +157,18 @@ export default function PlaygroundPage() {
       return;
     }
 
+    // Get user ID from localStorage
+    const storedUser = localStorage.getItem('memvault_user');
+    const userId = storedUser ? JSON.parse(storedUser).id : null;
+    
+    if (!userId) {
+      addLog("❌ Missing user ID. Please login again.", 'error');
+      console.error('No user ID found in localStorage');
+      return;
+    }
+
     console.log('✅ API Key found:', apiKey.substring(0, 10) + '...');
+    console.log('✅ User ID:', userId);
     const userText = input;
     setLastQuery(userText);
 
