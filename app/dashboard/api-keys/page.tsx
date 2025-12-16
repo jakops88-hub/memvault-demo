@@ -11,13 +11,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { Copy, Eye, EyeOff, Plus, Trash2, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { userApi } from "@/lib/api";
 
 interface ApiKey {
   id: string;
   name: string;
   key: string;
   createdAt: string;
-  lastUsed: string | null;
+  lastUsedAt?: string | null; // Changed from lastUsed to lastUsedAt to match API
 }
 
 export default function ApiKeysPage() {
@@ -33,21 +34,7 @@ export default function ApiKeysPage() {
   const loadApiKeys = async () => {
     try {
       setIsLoading(true);
-      const storedUser = localStorage.getItem("memvault_user");
-      const apiKey = storedUser ? JSON.parse(storedUser).apiKey : null;
-
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user/api-keys`,
-        {
-          headers: {
-            Authorization: `Bearer ${apiKey}`,
-          },
-        }
-      );
-
-      if (!response.ok) throw new Error("Failed to fetch API keys");
-
-      const data = await response.json();
+      const data = await userApi.getApiKeys();
       setApiKeys(data.apiKeys || []);
     } catch (error) {
       console.error("Failed to load API keys:", error);
@@ -85,20 +72,7 @@ export default function ApiKeysPage() {
     if (!confirm("Are you sure you want to delete this API key?")) return;
 
     try {
-      const storedUser = localStorage.getItem("memvault_user");
-      const apiKey = storedUser ? JSON.parse(storedUser).apiKey : null;
-
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user/api-keys/${keyId}`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${apiKey}`,
-          },
-        }
-      );
-
-      if (!response.ok) throw new Error("Failed to delete API key");
+      await userApi.deleteApiKey(keyId);
 
       toast({
         title: "Success",
@@ -193,7 +167,7 @@ export default function ApiKeysPage() {
                     <CardTitle className="text-lg">{apiKey.name}</CardTitle>
                     <CardDescription>
                       Created on {new Date(apiKey.createdAt).toLocaleDateString()}
-                      {apiKey.lastUsed && ` • Last used ${apiKey.lastUsed}`}
+                      {apiKey.lastUsedAt && ` • Last used ${new Date(apiKey.lastUsedAt).toLocaleDateString()}`}
                     </CardDescription>
                   </div>
                   <div className="flex gap-2">
