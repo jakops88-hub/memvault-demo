@@ -184,19 +184,32 @@ export default function PlaygroundPage() {
         }
       };
 
+      const proxySecret = process.env.NEXT_PUBLIC_RAPIDAPI_PROXY_SECRET;
+
       console.log('Sending to:', `${API_BASE_URL}/api/memory/add`);
-      console.log('Headers:', { 'x-api-key': apiKey.substring(0, 10) + '...' });
+      console.log('Headers:', { 
+        'Authorization': `Bearer ${apiKey.substring(0, 10)}...`,
+        'x-api-key': apiKey.substring(0, 10) + '...',
+        'x-rapidapi-proxy-secret': proxySecret ? '***' : 'missing'
+      });
       console.log('Body:', requestBody);
 
       // Try real API call first
       let useRealAPI = true;
       try {
+        const headers: HeadersInit = {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`,
+          'x-api-key': apiKey
+        };
+        
+        if (proxySecret) {
+          headers['x-rapidapi-proxy-secret'] = proxySecret;
+        }
+
         const storeResponse = await fetch(`${API_BASE_URL}/api/memory/add`, {
           method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json', 
-            'x-api-key': apiKey
-          },
+          headers,
           body: JSON.stringify(requestBody)
         });
 
@@ -244,12 +257,20 @@ export default function PlaygroundPage() {
 
       if (useRealAPI) {
         try {
+          const proxySecret = process.env.NEXT_PUBLIC_RAPIDAPI_PROXY_SECRET;
+          const headers: HeadersInit = {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`,
+            'x-api-key': apiKey
+          };
+          
+          if (proxySecret) {
+            headers['x-rapidapi-proxy-secret'] = proxySecret;
+          }
+
           const searchResponse = await fetch(`${API_BASE_URL}/api/memory/search`, {
             method: 'POST',
-            headers: { 
-              'Content-Type': 'application/json',
-              'x-api-key': apiKey
-            },
+            headers,
             body: JSON.stringify({ sessionId: agentId, query: userText, limit: 3 })
           });
 
