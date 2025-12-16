@@ -191,7 +191,23 @@ export default function PlaygroundPage() {
       if (!storeResponse.ok) {
         const errorText = await storeResponse.text();
         console.error('Store failed:', storeResponse.status, errorText);
-        throw new Error(`Failed to store memory: ${storeResponse.status} - ${errorText}`);
+        console.error('Request was:', {
+          url: `${API_BASE_URL}/api/memory/store`,
+          headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey.substring(0, 15) + '...' },
+          body: { sessionId: agentId, text: userText, metadata: { userId } }
+        });
+        
+        // Försök parsa error response
+        let errorMessage = errorText;
+        try {
+          const errorJson = JSON.parse(errorText);
+          errorMessage = errorJson.error?.message || errorJson.message || errorText;
+          console.error('Parsed error:', errorJson);
+        } catch (e) {
+          // Inte JSON
+        }
+        
+        throw new Error(`Failed to store memory: ${storeResponse.status} - ${errorMessage}`);
       }
       
       setMemoryNodes(prev => [...prev, newMemoryNode]);
