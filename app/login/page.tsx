@@ -41,8 +41,9 @@ export default function LoginPage() {
       }
 
       // Real API verification (when backend is ready)
+      const backendUrl = (process.env.NEXT_PUBLIC_BACKEND_URL || '').replace(/\/$/, '');
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user/me`,
+        `${backendUrl}/api/user/me`,
         {
           headers: {
             "Content-Type": "application/json",

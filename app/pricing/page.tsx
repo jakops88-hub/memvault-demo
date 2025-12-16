@@ -32,8 +32,9 @@ export default function PricingPage() {
     try {
       const setLoading = plan === 'hobby' ? setIsLoadingHobby : setIsLoadingPro;
       setLoading(true);
+      const backendUrl = (process.env.NEXT_PUBLIC_BACKEND_URL || '').replace(/\/$/, '');
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/public/stripe/checkout`,
+        `${backendUrl}/api/public/stripe/checkout`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

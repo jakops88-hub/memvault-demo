@@ -20,7 +20,7 @@ export function ManageSubscriptionButton({
       setIsLoading(true);
 
       // Call your Koyeb backend instead of local API route
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "https://your-backend.koyeb.app";
+      const backendUrl = (process.env.NEXT_PUBLIC_BACKEND_URL || "https://your-backend.koyeb.app").replace(/\/$/, '');
       
       const response = await fetch(`${backendUrl}/api/stripe/create-portal-session`, {
         method: "POST",
