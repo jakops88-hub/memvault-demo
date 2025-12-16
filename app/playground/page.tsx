@@ -259,14 +259,18 @@ export default function PlaygroundPage() {
 
       if (useRealAPI) {
         try {
-          const searchResponse = await fetch(`${API_BASE_URL}/api/memory/search`, {
+          const searchResponse = await fetch(`${API_BASE_URL}/api/graphrag/retrieve`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
               'Authorization': `Bearer ${apiKey}`,
               'x-api-key': apiKey
             },
-            body: JSON.stringify({ sessionId: agentId, query: userText, limit: 3 })
+            body: JSON.stringify({ 
+              userId: userId, 
+              query: userText, 
+              limit: 10 
+            })
           });
 
           if (searchResponse.ok) {
