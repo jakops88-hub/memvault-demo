@@ -58,7 +58,7 @@ export default function BillingPage() {
   const usage = {
     current: stats?.creditsUsed || 0,
     limit: stats?.creditsLimit || 100000,
-    percentage: stats ? ((stats.creditsUsed / stats.creditsLimit) * 100).toFixed(1) : "0",
+    percentage: stats ? parseFloat(((stats.creditsUsed / stats.creditsLimit) * 100).toFixed(1)) : 0,
   };
 
   return (
