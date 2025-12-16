@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { ManageSubscriptionButton } from "@/components/ManageSubscriptionButton";
+import { UpgradeButton } from "@/components/UpgradeButton";
 import { Badge } from "@/components/ui/badge";
 import {
   CheckCircle2,
@@ -161,14 +162,27 @@ export default function BillingPage() {
             </div>
 
             <div className="space-y-2 rounded-lg bg-muted/50 p-4">
-              <p className="text-sm font-medium">Need more credits?</p>
-              <p className="text-sm text-muted-foreground">
-                Upgrade your plan to get higher limits and additional features.
+              <p className="text-sm font-medium">
+                {currentPlan.name === "PRO" ? "Manage your subscription" : "Need more credits?"}
               </p>
-              <ManageSubscriptionButton
-                label="Upgrade Plan"
-                variant="outline"
-              />
+              <p className="text-sm text-muted-foreground">
+                {currentPlan.name === "PRO" 
+                  ? "Update payment method, view invoices, or cancel subscription."
+                  : "Upgrade your plan to get higher limits and additional features."}
+              </p>
+              {currentPlan.name === "PRO" ? (
+                <ManageSubscriptionButton
+                  label="Manage Subscription"
+                  variant="outline"
+                />
+              ) : (
+                <UpgradeButton
+                  currentTier={currentPlan.name}
+                  priceId={process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID || "price_1ABC..."}
+                  label="Upgrade to Pro - $99/mo"
+                  variant="default"
+                />
+              )}
             </div>
           </CardContent>
         </Card>

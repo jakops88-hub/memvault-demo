@@ -68,6 +68,16 @@ export const billingApi = {
     if (!response.ok) throw new Error('Failed to create portal session');
     return response.json();
   },
+
+  async createCheckoutSession(priceId: string) {
+    const response = await fetch(`${API_BASE_URL}/api/stripe/create-checkout-session`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ priceId }),
+    });
+    if (!response.ok) throw new Error('Failed to create checkout session');
+    return response.json();
+  },
 };
 
 // Memory API
