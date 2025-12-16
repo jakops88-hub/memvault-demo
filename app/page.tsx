@@ -28,19 +28,73 @@ export default function LandingPage() {
       </nav>
 
       <div className="container mx-auto px-6 py-20">
-        <div className="max-w-3xl mx-auto text-center">
+        <div className="max-w-4xl mx-auto text-center">
           <h1 className="text-5xl font-bold text-white mb-6">
             Memory as a Service
           </h1>
-          <p className="text-xl text-slate-300 mb-8">
-            Persistent memory API for AI applications. Store, retrieve, and
-            search memories with semantic understanding.
+          <p className="text-xl text-slate-300 mb-4">
+            Give your AI applications long-term memory with semantic search and context retrieval.
+          </p>
+          <p className="text-lg text-slate-400 mb-8">
+            MemVault is a vector database API that lets your AI agents remember conversations, user preferences, and important context across sessions. Built with PostgreSQL + pgvector for production-grade performance.
           </p>
           <Link href="/pricing">
             <Button size="lg" className="text-lg px-8 py-6">
-              Get Started - $99/month
+              Get Started - From $29/month
             </Button>
           </Link>
+        </div>
+
+        {/* Use Cases */}
+        <div className="max-w-4xl mx-auto mt-16 mb-12">
+          <h2 className="text-3xl font-bold text-white text-center mb-8">Intelligent Memory Management</h2>
+          <div className="bg-gradient-to-r from-blue-900/30 to-purple-900/30 p-8 rounded-lg border border-blue-700/50 mb-8">
+            <h3 className="text-2xl font-semibold text-blue-300 mb-4">Memory Consolidation with Sleep Cycles</h3>
+            <p className="text-slate-300 mb-4">
+              MemVault uses intelligent sleep cycles to automatically consolidate and optimize your memories, just like the human brain during sleep. The system periodically:
+            </p>
+            <ul className="space-y-2 text-slate-300">
+              <li className="flex items-start gap-3">
+                <span className="text-blue-400 font-bold mt-1">•</span>
+                <span><strong className="text-white">Analyzes relationships</strong> between stored memories to build semantic connections</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="text-blue-400 font-bold mt-1">•</span>
+                <span><strong className="text-white">Consolidates similar memories</strong> to reduce redundancy while preserving important details</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="text-blue-400 font-bold mt-1">•</span>
+                <span><strong className="text-white">Optimizes vector embeddings</strong> for faster retrieval and better semantic search accuracy</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="text-blue-400 font-bold mt-1">•</span>
+                <span><strong className="text-white">Archives low-priority memories</strong> to keep your active memory space efficient</span>
+              </li>
+            </ul>
+            <p className="text-slate-400 mt-4 text-sm">
+              This automatic consolidation happens in the background, ensuring your AI always has access to the most relevant and efficiently organized memories.
+            </p>
+          </div>
+          
+          <h2 className="text-3xl font-bold text-white text-center mb-8">Built for AI Applications</h2>
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="bg-slate-800/30 p-6 rounded-lg border border-slate-700">
+              <h3 className="text-lg font-semibold text-blue-400 mb-2">AI Chatbots & Assistants</h3>
+              <p className="text-slate-400">Remember user conversations and preferences across sessions for truly personalized interactions</p>
+            </div>
+            <div className="bg-slate-800/30 p-6 rounded-lg border border-slate-700">
+              <h3 className="text-lg font-semibold text-blue-400 mb-2">Content Generation</h3>
+              <p className="text-slate-400">Access relevant context and past outputs to maintain consistency and quality in generated content</p>
+            </div>
+            <div className="bg-slate-800/30 p-6 rounded-lg border border-slate-700">
+              <h3 className="text-lg font-semibold text-blue-400 mb-2">Personalization Engines</h3>
+              <p className="text-slate-400">Tailor responses and recommendations based on comprehensive user history and behavioral patterns</p>
+            </div>
+            <div className="bg-slate-800/30 p-6 rounded-lg border border-slate-700">
+              <h3 className="text-lg font-semibold text-blue-400 mb-2">Knowledge Retrieval</h3>
+              <p className="text-slate-400">Search through memories with GraphRAG-powered semantic understanding for accurate context retrieval</p>
+            </div>
+          </div>
         </div>
 
         {/* Features */}
