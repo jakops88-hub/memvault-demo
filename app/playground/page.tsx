@@ -69,7 +69,8 @@ const getTimestamp = () => {
 };
 
 export default function PlaygroundPage() {
-  const [agentId] = useState('demo-agent-alpha');
+  // Generate unique session ID for this playground session
+  const [agentId] = useState(`playground-${Date.now()}`);
   const [searchQuery, setSearchQuery] = useState('');
 
   const [input, setInput] = useState('');

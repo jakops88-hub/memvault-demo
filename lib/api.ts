@@ -36,18 +36,23 @@ function getAuthHeaders(): HeadersInit {
 // Get current user ID from localStorage
 function getCurrentUserId(): string {
   if (typeof window === 'undefined') {
-    return 'demo-user';
+    throw new Error('Cannot get user ID on server side');
   }
 
   const storedUser = localStorage.getItem('memvault_user');
   if (storedUser) {
     try {
-      return JSON.parse(storedUser).id;
+      const user = JSON.parse(storedUser);
+      if (!user.id) {
+        throw new Error('User ID not found in stored user data');
+      }
+      return user.id;
     } catch (e) {
       console.error('Failed to parse user from localStorage:', e);
+      throw new Error('Invalid user data in localStorage');
     }
   }
-  return 'demo-user';
+  throw new Error('User not logged in - no user data found');
 }
 
 // Billing API

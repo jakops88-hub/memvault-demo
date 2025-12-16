@@ -26,21 +26,7 @@ export default function LoginPage() {
     try {
       setIsLoading(true);
 
-      // TEMPORARY: For testing, allow any sk_ key and use demo data
-      // TODO: Remove this and uncomment real API call when backend is ready
-      if (apiKey.startsWith("sk_test_") || apiKey.startsWith("sk_demo_")) {
-        // Demo login for testing
-        setUser({
-          id: "demo-user-001",
-          email: "demo@memvault.com",
-          apiKey: apiKey,
-          tier: "PRO",
-        });
-        router.push("/dashboard");
-        return;
-      }
-
-      // Real API verification (when backend is ready)
+      // Verify API key with backend
       const backendUrl = (process.env.NEXT_PUBLIC_BACKEND_URL || '').replace(/\/$/, '');
       const response = await fetch(
         `${backendUrl}/api/user/me`,
