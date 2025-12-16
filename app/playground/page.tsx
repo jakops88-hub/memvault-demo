@@ -176,13 +176,14 @@ export default function PlaygroundPage() {
       const newMemoryNode: MemoryNode = { id: newMemoryId, content: userText, createdAt: Date.now() };
 
       console.log('Sending to:', `${API_BASE_URL}/api/memory/store`);
-      console.log('Headers:', { Authorization: `Bearer ${apiKey.substring(0, 10)}...` });
+      console.log('Headers:', { 'x-api-key': apiKey.substring(0, 10) + '...' });
+      console.log('Body:', { sessionId: agentId, text: userText, metadata: { userId } });
 
       const storeResponse = await fetch(`${API_BASE_URL}/api/memory/store`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json', 
-          'Authorization': `Bearer ${apiKey}`
+          'x-api-key': apiKey  // Backend använder x-api-key, inte Authorization
         },
         body: JSON.stringify({ sessionId: agentId, text: userText, metadata: { userId } })
       });
@@ -204,7 +205,7 @@ export default function PlaygroundPage() {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
+          'x-api-key': apiKey  // Backend använder x-api-key, inte Authorization
         },
         body: JSON.stringify({ sessionId: agentId, query: userText, limit: 3 })
       });
