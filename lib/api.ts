@@ -21,8 +21,11 @@ function getAuthHeaders(): HeadersInit {
     return { 'Content-Type': 'application/json' };
   }
 
-  const storedUser = localStorage.getItem('memvault_user');
-  const apiKey = storedUser ? JSON.parse(storedUser).apiKey : null;
+  const apiKey = localStorage.getItem('memvault_api_key');
+  
+  if (!apiKey) {
+    console.warn('⚠️ No API key found in localStorage');
+  }
   
   return {
     'Content-Type': 'application/json',
@@ -37,7 +40,14 @@ function getCurrentUserId(): string {
   }
 
   const storedUser = localStorage.getItem('memvault_user');
-  return storedUser ? JSON.parse(storedUser).id : 'demo-user';
+  if (storedUser) {
+    try {
+      return JSON.parse(storedUser).id;
+    } catch (e) {
+      console.error('Failed to parse user from localStorage:', e);
+    }
+  }
+  return 'demo-user';
 }
 
 // Billing API

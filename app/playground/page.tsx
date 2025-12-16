@@ -149,10 +149,12 @@ export default function PlaygroundPage() {
 
     const apiKey = localStorage.getItem('memvault_api_key');
     if (!apiKey) {
-      addLog("Missing API key. Please login first.", 'error');
+      addLog("❌ Missing API key. Please login first.", 'error');
+      console.error('No API key found in localStorage');
       return;
     }
 
+    console.log('✅ API Key found:', apiKey.substring(0, 10) + '...');
     const userText = input;
     setLastQuery(userText);
 
@@ -169,7 +171,10 @@ export default function PlaygroundPage() {
       const newMemoryId = Date.now().toString();
       const newMemoryNode: MemoryNode = { id: newMemoryId, content: userText, createdAt: Date.now() };
 
-      await fetch(`${API_BASE_URL}/api/memory/store`, {
+      console.log('Sending to:', `${API_BASE_URL}/api/memory/store`);
+      console.log('Headers:', { Authorization: `Bearer ${apiKey.substring(0, 10)}...` });
+
+      const storeResponse = await fetch(`${API_BASE_URL}/api/memory/store`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json', 
@@ -177,6 +182,12 @@ export default function PlaygroundPage() {
         },
         body: JSON.stringify({ sessionId: agentId, text: userText, metadata: { userId } })
       });
+
+      if (!storeResponse.ok) {
+        const errorText = await storeResponse.text();
+        console.error('Store failed:', storeResponse.status, errorText);
+        throw new Error(`Failed to store memory: ${storeResponse.status} - ${errorText}`);
+      }
       
       setMemoryNodes(prev => [...prev, newMemoryNode]);
       addLog(`Persisted to Vector DB`, 'success', `${(performance.now() - saveStart).toFixed(0)}ms`);
@@ -185,7 +196,7 @@ export default function PlaygroundPage() {
       addLog(`Calculating semantic distance...`, 'system');
       const searchStart = performance.now();
 
-      const res = await fetch(`${API_BASE_URL}/api/memory/search`, {
+      const searchResponse = await fetch(`${API_BASE_URL}/api/memory/search`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -193,7 +204,14 @@ export default function PlaygroundPage() {
         },
         body: JSON.stringify({ sessionId: agentId, query: userText, limit: 3 })
       });
-      const data = await res.json();
+
+      if (!searchResponse.ok) {
+        const errorText = await searchResponse.text();
+        console.error('Search failed:', searchResponse.status, errorText);
+        throw new Error(`Failed to search memories: ${searchResponse.status} - ${errorText}`);
+      }
+
+      const data = await searchResponse.json();
       const hits: MemoryNode[] = (data.results || []).map((r: any) => ({
         id: r.id || `temp-${Date.now()}`,
         content: r.text || r.content,
@@ -234,9 +252,17 @@ export default function PlaygroundPage() {
       }
 
     } catch (error) {
-      console.error(error);
+      console.error('Playground error:', error);
       setStatus('error');
-      addLog(`Neural Link Failure: ${error}`, 'error');
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      addLog(`❌ Neural Link Failure: ${errorMessage}`, 'error');
+      
+      setMessages(prev => [...prev, { 
+        id: (Date.now()+1).toString(), 
+        role: 'assistant', 
+        content: `Error: ${errorMessage}`, 
+        timestamp: Date.now() 
+      }]);
     } finally {
       setIsLoading(false);
     }
