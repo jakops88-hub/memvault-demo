@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Menu, Brain, User, LogOut, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -15,6 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { SidebarNav } from "@/components/SidebarNav";
+import { useAuth } from "@/lib/auth-context";
 
 function SidebarContent() {
   return (
@@ -46,36 +48,48 @@ function SidebarContent() {
 }
 
 function UserNav() {
+  const router = useRouter();
+  const { user, setUser } = useAuth();
+
+  const handleLogout = () => {
+    setUser(null);
+    router.push("/login");
+  };
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-10 w-10 rounded-full">
           <Avatar className="h-10 w-10">
             <AvatarImage src="/avatar.png" alt="User" />
-            <AvatarFallback>JS</AvatarFallback>
+            <AvatarFallback>{user?.email?.substring(0, 2).toUpperCase() || 'US'}</AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">Jacob Sandström</p>
+            <p className="text-sm font-medium leading-none">{user?.email || 'User'}</p>
             <p className="text-xs leading-none text-muted-foreground">
-              jacob@example.com
+              {user?.tier || 'FREE'} Plan
             </p>
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem>
-          <User className="mr-2 h-4 w-4" />
-          <span>Profile</span>
+        <DropdownMenuItem asChild>
+          <Link href="/dashboard/api-keys" className="cursor-pointer">
+            <User className="mr-2 h-4 w-4" />
+            <span>Profile</span>
+          </Link>
         </DropdownMenuItem>
-        <DropdownMenuItem>
-          <Settings className="mr-2 h-4 w-4" />
-          <span>Settings</span>
+        <DropdownMenuItem asChild>
+          <Link href="/dashboard/billing" className="cursor-pointer">
+            <Settings className="mr-2 h-4 w-4" />
+            <span>Settings</span>
+          </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem>
+        <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
           <LogOut className="mr-2 h-4 w-4" />
           <span>Log out</span>
         </DropdownMenuItem>
