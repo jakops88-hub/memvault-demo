@@ -12,8 +12,8 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Check if accessing dashboard routes
-  if (pathname.startsWith("/dashboard")) {
+  // Check if accessing protected routes (dashboard or playground)
+  if (pathname.startsWith("/dashboard") || pathname.startsWith("/playground")) {
     // Check for API key in cookies (we'll set this on login)
     const apiKey = request.cookies.get("memvault_api_key");
 

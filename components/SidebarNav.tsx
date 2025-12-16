@@ -13,7 +13,7 @@ const navItems = [
   },
   {
     title: "Playground",
-    href: "/dashboard/playground",
+    href: "/playground",
     icon: Terminal,
   },
   {
