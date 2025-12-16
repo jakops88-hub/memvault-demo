@@ -6,7 +6,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Copy, Eye, EyeOff, Plus, Trash2 } from "lucide-react";
+import { Copy, Eye, Plus, Trash2 } from "lucide-react";
 
 export default function ApiKeysPage() {
   // Mock data - replace with real data from your backend
