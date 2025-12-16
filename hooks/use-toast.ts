@@ -1,5 +1,3 @@
-import { useState } from "react";
-
 interface ToastProps {
   title: string;
   description?: string;
