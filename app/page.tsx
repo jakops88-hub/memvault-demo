@@ -14,9 +14,16 @@ export default function LandingPage() {
             <Brain className="h-8 w-8 text-blue-500" />
             <span className="text-2xl font-bold text-white">MemVault</span>
           </div>
-          <Link href="/login">
-            <Button variant="outline">Login</Button>
-          </Link>
+          <div className="flex items-center gap-4">
+            <Link href="/pricing">
+              <Button variant="ghost" className="text-white hover:text-blue-400">
+                Pricing
+              </Button>
+            </Link>
+            <Link href="/login">
+              <Button variant="outline">Login</Button>
+            </Link>
+          </div>
         </div>
       </nav>
 
@@ -31,7 +38,7 @@ export default function LandingPage() {
           </p>
           <Link href="/pricing">
             <Button size="lg" className="text-lg px-8 py-6">
-              Get Started - $29/month
+              Get Started - $99/month
             </Button>
           </Link>
         </div>
