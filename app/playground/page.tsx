@@ -2,20 +2,22 @@
 
 import { useState, useEffect, useRef, useMemo } from 'react';
 import {
-  Send,
-  Database,
   BrainCircuit,
-  Zap,
-  Layout,
-  Server,
-  Terminal as TerminalIcon,
+  TerminalIcon,
   ChevronUp,
   ChevronDown,
-  Globe,
-  ArrowLeft
+  ArrowLeft,
+  Activity,
+  Clock,
+  TrendingUp,
+  Search
 } from 'lucide-react';
 import Link from 'next/link';
-import { NeuralGraph } from '@/components/NeuralGraph';
+import { NeuralGraph } from '../../components/NeuralGraph';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 
 interface Message {
   id: string;
@@ -63,9 +65,9 @@ const getTimestamp = () => {
 };
 
 export default function PlaygroundPage() {
-  const [activeTab, setActiveTab] = useState<'canvas' | 'config'>('canvas');
-  const [userId, setUserId] = useState('demo-user-001');
-  const [agentId, setAgentId] = useState('demo-agent-alpha');
+  const [userId] = useState('demo-user-001');
+  const [agentId] = useState('demo-agent-alpha');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const [input, setInput] = useState('');
   const [lastQuery, setLastQuery] = useState<string | null>(null);
@@ -76,13 +78,15 @@ export default function PlaygroundPage() {
 
   const [memoryNodes, setMemoryNodes] = useState<MemoryNode[]>([]);
   const [activeNodeIds, setActiveNodeIds] = useState<string[]>([]);
+  const [totalApiCalls, setTotalApiCalls] = useState(0);
+  const [avgSimilarity, setAvgSimilarity] = useState(0);
 
   const [logs, setLogs] = useState<LogEntry[]>([
     { id: 'init', timestamp: getTimestamp(), type: 'system', message: 'System initialized. Production Link Established.' }
   ]);
   const [isTerminalOpen, setIsTerminalOpen] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
-  const [status, setStatus] = useState<'idle' | 'saving' | 'retrieving' | 'error'>('idle');
+  const [, setStatus] = useState<'idle' | 'saving' | 'retrieving' | 'error'>('idle');
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const logsEndRef = useRef<HTMLDivElement>(null);
@@ -122,6 +126,12 @@ export default function PlaygroundPage() {
     }
     return { nodes, links };
   }, [memoryNodes, activeNodeIds, lastQuery]);
+
+  const filteredNodes = memoryNodes.filter(node => 
+    searchQuery === '' || 
+    node.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    node.id.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const addLog = (message: string, type: LogEntry['type'] = 'info', latency?: string) => {
     setLogs(prev => [...prev, {
@@ -216,6 +226,13 @@ export default function PlaygroundPage() {
 
       setMessages(prev => [...prev, { id: (Date.now()+1).toString(), role: 'assistant', content: aiResponse, timestamp: Date.now() }]);
 
+      // Update metrics
+      setTotalApiCalls(prev => prev + 2);
+      if (hits.length > 0) {
+        const avgScore = hits.reduce((sum, h) => sum + (h.similarity || 0), 0) / hits.length;
+        setAvgSimilarity(avgScore);
+      }
+
     } catch (error) {
       console.error(error);
       setStatus('error');
@@ -227,175 +244,181 @@ export default function PlaygroundPage() {
 
   return (
     <div className="flex h-screen bg-white text-slate-800 font-sans overflow-hidden">
-      {/* Sidebar */}
-      <aside className="w-[380px] flex flex-col border-r border-slate-200 bg-slate-50 z-20 shadow-lg">
-        <div className="p-4 border-b border-slate-200 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link href="/dashboard" className="p-2 hover:bg-slate-200 rounded-lg transition-colors">
+      {/* Left Sidebar - Memory List */}
+      <aside className="w-[320px] flex flex-col border-r border-slate-200 bg-white shadow-sm">
+        <div className="p-4 border-b border-slate-200">
+          <div className="flex items-center gap-3 mb-4">
+            <Link href="/dashboard" className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
               <ArrowLeft size={18} className="text-slate-600" />
             </Link>
             <div className="bg-blue-600 p-2 rounded-lg">
               <BrainCircuit size={20} className="text-white" />
             </div>
             <h1 className="font-bold tracking-tight text-slate-900">
-              MemVault <span className="text-[10px] text-blue-600 font-normal ml-1">Playground</span>
+              Playground
             </h1>
           </div>
-          <div className="flex bg-slate-200 rounded-lg p-1">
-            <button 
-              onClick={() => setActiveTab('canvas')} 
-              className={`p-1.5 rounded-md transition-colors ${activeTab === 'canvas' ? 'bg-blue-600 text-white' : 'text-slate-500 hover:text-slate-700'}`}
-            >
-              <Layout size={16}/>
-            </button>
-            <button 
-              onClick={() => setActiveTab('config')} 
-              className={`p-1.5 rounded-md transition-colors ${activeTab === 'config' ? 'bg-blue-600 text-white' : 'text-slate-500 hover:text-slate-700'}`}
-            >
-              <Server size={16}/>
-            </button>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+            <Input
+              placeholder="Search memories..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 h-9 text-sm"
+            />
           </div>
         </div>
 
-        <div className="flex-1 overflow-hidden flex flex-col relative">
-          {activeTab === 'config' ? (
-            <div className="p-6 space-y-6">
-              <div className="p-4 rounded-xl border bg-green-50 border-green-200">
-                <div className="flex items-center gap-3 mb-2">
-                  <Globe className="text-green-600 animate-pulse" size={20}/>
-                  <span className="text-xs font-bold uppercase text-green-700">Live Connection</span>
-                </div>
-                <p className="text-[10px] text-slate-600">Connected to Production Database.</p>
-              </div>
-
-              <div className="space-y-4">
-                <label className="text-xs text-slate-500 uppercase font-semibold">Agent ID</label>
-                <input 
-                  type="text" 
-                  value={agentId} 
-                  onChange={e => setAgentId(e.target.value)} 
-                  className="w-full bg-white border border-slate-300 rounded-lg p-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500" 
-                />
-              </div>
-              <div className="space-y-4">
-                <label className="text-xs text-slate-500 uppercase font-semibold">User ID</label>
-                <input 
-                  type="text" 
-                  value={userId} 
-                  onChange={e => setUserId(e.target.value)} 
-                  className="w-full bg-white border border-slate-300 rounded-lg p-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500" 
-                />
-              </div>
-            </div>
+        <div className="flex-1 overflow-y-auto p-4 space-y-2">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-medium text-slate-500">STORED MEMORIES</p>
+            <Badge variant="secondary" className="text-xs">
+              {filteredNodes.length}
+            </Badge>
+          </div>
+          {filteredNodes.length === 0 ? (
+            <p className="text-sm text-slate-400 text-center py-8">No memories yet. Start by sending a message.</p>
           ) : (
-            <>
-              <div className="flex-1 overflow-y-auto p-4 space-y-6">
-                {messages.map(msg => (
-                  <div key={msg.id} className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
-                      msg.role === 'assistant' ? 'bg-blue-600' : 'bg-slate-300'
-                    }`}>
-                      {msg.role === 'assistant' ? (
-                        <BrainCircuit size={16} className="text-white" />
-                      ) : (
-                        <div className="text-xs font-bold text-slate-700">U</div>
-                      )}
-                    </div>
-                    <div className={`p-3 rounded-2xl max-w-[85%] text-sm ${
-                      msg.role === 'user' 
-                        ? 'bg-blue-600 text-white rounded-tr-none' 
-                        : 'bg-slate-200 text-slate-800 rounded-tl-none'
-                    }`}>
-                      {msg.content}
-                    </div>
-                  </div>
-                ))}
-                {isLoading && (
-                  <div className="flex gap-2 items-center text-xs text-slate-500 px-4">
-                    <Zap size={12} className="animate-pulse text-yellow-500"/>
-                    Thinking...
-                  </div>
-                )}
-                <div ref={messagesEndRef} />
+            filteredNodes.map((node) => (
+              <div
+                key={node.id}
+                className={`p-3 rounded-lg border transition-all cursor-pointer ${
+                  activeNodeIds.includes(node.id) 
+                    ? 'bg-blue-50 border-blue-300' 
+                    : 'bg-slate-50 border-slate-200 hover:border-slate-300'
+                }`}
+                onClick={() => setActiveNodeIds([node.id])}
+              >
+                <p className="text-xs text-slate-700 line-clamp-2 mb-1">{node.content}</p>
+                <div className="flex items-center gap-2 text-[10px] text-slate-400">
+                  <Clock size={10} />
+                  <span>{new Date(node.createdAt).toLocaleTimeString()}</span>
+                  {node.similarity !== undefined && (
+                    <Badge variant="outline" className="text-[9px] px-1 py-0 h-4">
+                      {(node.similarity * 100).toFixed(0)}% match
+                    </Badge>
+                  )}
+                </div>
               </div>
-              <div className="p-4 bg-white border-t border-slate-200">
-                <form onSubmit={handleSendMessage} className="relative">
-                  <input 
-                    value={input} 
-                    onChange={e => setInput(e.target.value)} 
-                    placeholder="Store a memory..." 
-                    className="w-full bg-slate-50 border border-slate-300 rounded-xl pl-4 pr-10 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" 
-                    disabled={isLoading}
-                  />
-                  <button 
-                    type="submit" 
-                    disabled={!input.trim() || isLoading} 
-                    className="absolute right-2 top-2 p-1.5 bg-blue-600 rounded-lg text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    <Send size={14} />
-                  </button>
-                </form>
-              </div>
-            </>
+            ))
           )}
         </div>
       </aside>
 
-      {/* Main Content */}
-      <main className="flex-1 relative bg-gradient-to-br from-slate-50 to-blue-50 flex flex-col overflow-hidden">
-        <div className="flex-1 relative overflow-hidden">
-          <div className="absolute top-4 left-4 z-10 bg-white/80 backdrop-blur-md border border-slate-200 px-4 py-2 rounded-full flex items-center gap-2 text-xs text-slate-700 shadow-lg">
-            <Database size={12} className="text-blue-600" />
-            <span className="font-semibold">Active Vectors: {memoryNodes.length}</span>
-          </div>
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col">
+        {/* Metrics Dashboard */}
+        <div className="border-b border-slate-200 bg-slate-50 p-4">
+          <div className="grid grid-cols-4 gap-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xs font-medium text-slate-500 flex items-center gap-2">
+                  <Activity size={14} className="text-blue-600" />
+                  Total Memories
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-2xl font-bold text-slate-900">{memoryNodes.length}</p>
+              </CardContent>
+            </Card>
 
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xs font-medium text-slate-500 flex items-center gap-2">
+                  <TrendingUp size={14} className="text-green-600" />
+                  API Calls
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-2xl font-bold text-slate-900">{totalApiCalls}</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xs font-medium text-slate-500 flex items-center gap-2">
+                  <Activity size={14} className="text-purple-600" />
+                  Avg Similarity
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-2xl font-bold text-slate-900">
+                  {avgSimilarity > 0 ? `${(avgSimilarity * 100).toFixed(0)}%` : '-'}
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xs font-medium text-slate-500 flex items-center gap-2">
+                  <Clock size={14} className="text-orange-600" />
+                  Active Nodes
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-2xl font-bold text-slate-900">{activeNodeIds.length}</p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* Graph Visualization */}
+        <div className="flex-1 relative bg-white">
           <NeuralGraph data={graphData} />
         </div>
 
-        {/* Terminal */}
-        <div className={`border-t border-slate-200 bg-white transition-all duration-300 ease-in-out flex flex-col z-20 shadow-2xl ${
-          isTerminalOpen ? 'h-64' : 'h-12'
-        }`}>
-          <div 
-            onClick={() => setIsTerminalOpen(!isTerminalOpen)} 
-            className="h-12 border-b border-slate-200 bg-slate-50 flex items-center justify-between px-4 cursor-pointer hover:bg-slate-100 transition-colors"
-          >
-            <div className="flex items-center gap-2 text-xs font-mono text-slate-700">
-              <TerminalIcon size={12} />
-              <span className="font-bold">SYSTEM LOGS</span>
-              {status !== 'idle' && (
-                <span className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse ml-2"></span>
-              )}
-            </div>
-            {isTerminalOpen ? (
-              <ChevronDown size={14} className="text-slate-500"/>
-            ) : (
-              <ChevronUp size={14} className="text-slate-500"/>
-            )}
+        {/* Input Area */}
+        <div className="border-t border-slate-200 bg-white p-4">
+          <form onSubmit={handleSendMessage} className="flex gap-2">
+            <Input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Enter a memory or query..."
+              className="flex-1"
+              disabled={isLoading}
+            />
+            <Button type="submit" disabled={isLoading} className="px-6">
+              {isLoading ? 'Processing...' : 'Send'}
+            </Button>
+          </form>
+        </div>
+      </div>
+
+      {/* Right Sidebar - Logs Terminal */}
+      <aside className="w-[380px] flex flex-col border-l border-slate-200 bg-slate-50 z-20 shadow-lg">
+        <div className="p-4 border-b border-slate-200 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <TerminalIcon size={16} className="text-slate-600" />
+            <span className="font-medium text-sm text-slate-700">System Logs</span>
           </div>
-          <div className="flex-1 overflow-y-auto p-4 font-mono text-xs space-y-1.5 bg-slate-50">
+          <button 
+            onClick={() => setIsTerminalOpen(!isTerminalOpen)}
+            className="p-1.5 hover:bg-slate-200 rounded transition-colors"
+          >
+            {isTerminalOpen ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
+          </button>
+        </div>
+
+        {isTerminalOpen && (
+          <div className="flex-1 overflow-y-auto bg-slate-900 text-slate-100 p-4 font-mono text-xs leading-relaxed">
             {logs.map((log) => (
-              <div key={log.id} className="flex gap-3 group hover:bg-slate-100 p-1 rounded px-2">
-                <span className="text-slate-400 shrink-0 select-none">[{log.timestamp}]</span>
-                <span className={`shrink-0 w-16 uppercase font-bold text-[10px] pt-0.5 ${
-                  log.type === 'info' ? 'text-blue-600' : 
-                  log.type === 'success' ? 'text-green-600' : 
-                  log.type === 'warning' ? 'text-yellow-600' : 
-                  log.type === 'error' ? 'text-red-600' : 
-                  'text-slate-500'
-                }`}>
-                  {log.type}
+              <div key={log.id} className="mb-1 flex items-start gap-2">
+                <span className="text-slate-500">[{log.timestamp}]</span>
+                <span className={
+                  log.type === 'error' ? 'text-red-400' : 
+                  log.type === 'success' ? 'text-green-400' : 
+                  log.type === 'system' ? 'text-blue-400' : 
+                  'text-slate-300'
+                }>
+                  {log.message}
                 </span>
-                <span className="text-slate-700 break-all">{log.message}</span>
-                {log.latency && (
-                  <span className="ml-auto text-slate-400 text-[10px] select-none">{log.latency}</span>
-                )}
+                {log.latency && <span className="text-yellow-400 ml-auto">{log.latency}</span>}
               </div>
             ))}
             <div ref={logsEndRef} />
           </div>
-        </div>
-      </main>
+        )}
+      </aside>
     </div>
   );
 }
