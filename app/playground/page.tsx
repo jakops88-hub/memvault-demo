@@ -271,7 +271,7 @@ export default function PlaygroundPage() {
   return (
     <div className="flex h-screen bg-white text-slate-800 font-sans overflow-hidden">
       {/* Left Sidebar - Memory List */}
-      <aside className="w-[320px] flex flex-col border-r border-slate-200 bg-white shadow-sm">
+      <aside className="w-[320px] flex flex-col border-r border-slate-200 bg-white shadow-sm z-20 relative">
         <div className="p-4 border-b border-slate-200">
           <div className="flex items-center gap-3 mb-4">
             <Link href="/dashboard" className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
@@ -332,9 +332,9 @@ export default function PlaygroundPage() {
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col relative">
         {/* Metrics Dashboard */}
-        <div className="border-b border-slate-200 bg-slate-50 p-4">
+        <div className="border-b border-slate-200 bg-slate-50 p-4 relative z-10">
           <div className="grid grid-cols-4 gap-4">
             <Card>
               <CardHeader className="pb-2">
@@ -389,12 +389,12 @@ export default function PlaygroundPage() {
         </div>
 
         {/* Graph Visualization */}
-        <div className="flex-1 relative bg-white">
+        <div className="flex-1 relative bg-white overflow-hidden">
           <NeuralGraph data={graphData} />
         </div>
 
         {/* Input Area */}
-        <div className="border-t border-slate-200 bg-white p-4">
+        <div className="border-t border-slate-200 bg-white p-4 relative z-10">
           <form onSubmit={handleSendMessage} className="flex gap-2">
             <Input
               value={input}

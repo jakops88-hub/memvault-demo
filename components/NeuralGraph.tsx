@@ -36,16 +36,21 @@ const INITIAL_DATA: GraphData = {
 
 export function NeuralGraph({ data = INITIAL_DATA }: { data?: GraphData }) {
   const graphRef = useRef<any>();
+  const containerRef = useRef<HTMLDivElement>(null);
   const [hoverNode, setHoverNode] = useState<GraphNode | null>(null);
   const [dimensions, setDimensions] = useState({ w: 800, h: 600 });
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setDimensions({ w: window.innerWidth, h: window.innerHeight });
-      const updateDim = () => setDimensions({ w: window.innerWidth, h: window.innerHeight });
-      window.addEventListener('resize', updateDim);
-      return () => window.removeEventListener('resize', updateDim);
-    }
+    const updateDimensions = () => {
+      if (containerRef.current) {
+        const { width, height } = containerRef.current.getBoundingClientRect();
+        setDimensions({ w: width, h: height });
+      }
+    };
+
+    updateDimensions();
+    window.addEventListener('resize', updateDimensions);
+    return () => window.removeEventListener('resize', updateDimensions);
   }, []);
 
   useEffect(() => {
@@ -164,10 +169,20 @@ export function NeuralGraph({ data = INITIAL_DATA }: { data?: GraphData }) {
   }, []);
 
   return (
-    <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 0 }}>
+    <div 
+      ref={containerRef}
+      style={{ 
+        position: 'absolute', 
+        top: 0, 
+        left: 0, 
+        width: '100%', 
+        height: '100%', 
+        pointerEvents: 'none' // Låt klick gå igenom till underliggande element
+      }}
+    >
       {hoverNode && (
         <div 
-          className="absolute top-[15%] left-1/2 -translate-x-1/2 z-[2000] bg-white/95 backdrop-blur-sm border border-slate-200 rounded-xl shadow-2xl p-4 max-w-md"
+          className="absolute top-[15%] left-1/2 -translate-x-1/2 z-[2000] bg-white/95 backdrop-blur-sm border border-slate-200 rounded-xl shadow-2xl p-4 max-w-md pointer-events-auto"
         >
           <div className="text-xs font-bold text-blue-600 uppercase mb-2">
             {hoverNode.type === 'query' ? '→ Active Query' : '→ Memory Node'}
@@ -183,28 +198,30 @@ export function NeuralGraph({ data = INITIAL_DATA }: { data?: GraphData }) {
         </div>
       )}
 
-      <ForceGraph2D
-        ref={graphRef}
-        graphData={data}
-        width={dimensions.w}
-        height={dimensions.h}
-        backgroundColor="transparent"
-        cooldownTicks={100}
-        onEngineStop={() => graphRef.current?.zoomToFit(400)}
-        nodeCanvasObject={paintNode}
-        linkCanvasObject={paintLink}
-        linkCanvasObjectMode={() => 'replace'}
-        onNodeHover={(node: any) => {
-          setHoverNode(node || null);
-          if (typeof document !== 'undefined') {
-            document.body.style.cursor = node ? 'pointer' : 'default';
-          }
-        }}
-        linkDirectionalParticles={(link: any) => link.similarity > 0.8 ? 4 : link.similarity > 0.5 ? 2 : 0}
-        linkDirectionalParticleSpeed={(link: any) => link.similarity * 0.01}
-        linkDirectionalParticleWidth={3}
-        linkDirectionalParticleColor={() => '#3b82f6'}
-      />
+      <div style={{ pointerEvents: 'auto' }}>
+        <ForceGraph2D
+          ref={graphRef}
+          graphData={data}
+          width={dimensions.w}
+          height={dimensions.h}
+          backgroundColor="transparent"
+          cooldownTicks={100}
+          onEngineStop={() => graphRef.current?.zoomToFit(400)}
+          nodeCanvasObject={paintNode}
+          linkCanvasObject={paintLink}
+          linkCanvasObjectMode={() => 'replace'}
+          onNodeHover={(node: any) => {
+            setHoverNode(node || null);
+            if (typeof document !== 'undefined') {
+              document.body.style.cursor = node ? 'pointer' : 'default';
+            }
+          }}
+          linkDirectionalParticles={(link: any) => link.similarity > 0.8 ? 4 : link.similarity > 0.5 ? 2 : 0}
+          linkDirectionalParticleSpeed={(link: any) => link.similarity * 0.01}
+          linkDirectionalParticleWidth={3}
+          linkDirectionalParticleColor={() => '#3b82f6'}
+        />
+      </div>
     </div>
   );
 }
