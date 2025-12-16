@@ -20,7 +20,6 @@ import {
   Loader2,
 } from "lucide-react";
 import { userApi } from "@/lib/api";
-import { DemoUserSetup } from "@/components/DemoUserSetup";
 
 export default function BillingPage() {
   const [stats, setStats] = useState<any>(null);
@@ -63,9 +62,7 @@ export default function BillingPage() {
   };
 
   return (
-    <>
-      <DemoUserSetup />
-      <div className="space-y-6">
+    <div className="space-y-6">
         {/* Page Header */}
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Billing</h1>
@@ -239,6 +236,6 @@ export default function BillingPage() {
         </CardContent>
       </Card>
       </div>
-    </>
+    </div>
   );
 }

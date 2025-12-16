@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import {
   Card,
   CardContent,
@@ -6,26 +9,124 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Copy, Eye, Plus, Trash2 } from "lucide-react";
+import { Copy, Eye, EyeOff, Plus, Trash2, Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+
+interface ApiKey {
+  id: string;
+  name: string;
+  key: string;
+  createdAt: string;
+  lastUsed: string | null;
+}
 
 export default function ApiKeysPage() {
-  // Mock data - replace with real data from your backend
-  const apiKeys = [
-    {
-      id: "1",
-      name: "Production Key",
-      key: "mk_prod_••••••••••••••••",
-      created: "2025-12-01",
-      lastUsed: "2 hours ago",
-    },
-    {
-      id: "2",
-      name: "Development Key",
-      key: "mk_dev_••••••••••••••••",
-      created: "2025-11-15",
-      lastUsed: "1 day ago",
-    },
-  ];
+  const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [visibleKeys, setVisibleKeys] = useState<Set<string>>(new Set());
+  const { toast } = useToast();
+
+  useEffect(() => {
+    loadApiKeys();
+  }, []);
+
+  const loadApiKeys = async () => {
+    try {
+      setIsLoading(true);
+      const storedUser = localStorage.getItem("memvault_user");
+      const apiKey = storedUser ? JSON.parse(storedUser).apiKey : null;
+
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user/api-keys`,
+        {
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+          },
+        }
+      );
+
+      if (!response.ok) throw new Error("Failed to fetch API keys");
+
+      const data = await response.json();
+      setApiKeys(data.apiKeys || []);
+    } catch (error) {
+      console.error("Failed to load API keys:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load API keys",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCopy = (key: string) => {
+    navigator.clipboard.writeText(key);
+    toast({
+      title: "Copied!",
+      description: "API key copied to clipboard",
+    });
+  };
+
+  const toggleVisibility = (keyId: string) => {
+    setVisibleKeys((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(keyId)) {
+        newSet.delete(keyId);
+      } else {
+        newSet.add(keyId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleDelete = async (keyId: string) => {
+    if (!confirm("Are you sure you want to delete this API key?")) return;
+
+    try {
+      const storedUser = localStorage.getItem("memvault_user");
+      const apiKey = storedUser ? JSON.parse(storedUser).apiKey : null;
+
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user/api-keys/${keyId}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+          },
+        }
+      );
+
+      if (!response.ok) throw new Error("Failed to delete API key");
+
+      toast({
+        title: "Success",
+        description: "API key deleted",
+      });
+
+      loadApiKeys();
+    } catch (error) {
+      console.error("Failed to delete API key:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete API key",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const maskApiKey = (key: string) => {
+    return `${key.substring(0, 7)}${"•".repeat(20)}`;
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex h-[50vh] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -37,9 +138,9 @@ export default function ApiKeysPage() {
             Manage your API keys for accessing MemVault services
           </p>
         </div>
-        <Button>
+        <Button disabled>
           <Plus className="mr-2 h-4 w-4" />
-          Create New Key
+          Create New Key (Coming Soon)
         </Button>
       </div>
 
@@ -67,8 +168,8 @@ export default function ApiKeysPage() {
                 Keep your API keys secure
               </p>
               <p className="mt-1 text-sm text-blue-700">
-                Never share your API keys publicly or commit them to version control.
-                Store them securely in environment variables.
+                Never share your API keys publicly or commit them to version
+                control. Store them securely in environment variables.
               </p>
             </div>
           </div>
@@ -77,61 +178,65 @@ export default function ApiKeysPage() {
 
       {/* API Keys List */}
       <div className="space-y-4">
-        {apiKeys.map((apiKey) => (
-          <Card key={apiKey.id}>
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div>
-                  <CardTitle className="text-lg">{apiKey.name}</CardTitle>
-                  <CardDescription>
-                    Created on {apiKey.created} • Last used {apiKey.lastUsed}
-                  </CardDescription>
-                </div>
-                <div className="flex gap-2">
-                  <Button variant="ghost" size="icon">
-                    <Eye className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon">
-                    <Copy className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="text-destructive">
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="rounded-lg bg-muted p-3 font-mono text-sm">
-                {apiKey.key}
-              </div>
+        {apiKeys.length === 0 ? (
+          <Card>
+            <CardContent className="py-10 text-center">
+              <p className="text-muted-foreground">No API keys found</p>
             </CardContent>
           </Card>
-        ))}
+        ) : (
+          apiKeys.map((apiKey) => (
+            <Card key={apiKey.id}>
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div>
+                    <CardTitle className="text-lg">{apiKey.name}</CardTitle>
+                    <CardDescription>
+                      Created on {new Date(apiKey.createdAt).toLocaleDateString()}
+                      {apiKey.lastUsed && ` • Last used ${apiKey.lastUsed}`}
+                    </CardDescription>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => toggleVisibility(apiKey.id)}
+                    >
+                      {visibleKeys.has(apiKey.id) ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleCopy(apiKey.key)}
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-destructive"
+                      onClick={() => handleDelete(apiKey.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="rounded-lg bg-muted p-3 font-mono text-sm">
+                  {visibleKeys.has(apiKey.id)
+                    ? apiKey.key
+                    : maskApiKey(apiKey.key)}
+                </div>
+              </CardContent>
+            </Card>
+          ))
+        )}
       </div>
-
-      {/* Usage Stats */}
-      <Card>
-        <CardHeader>
-          <CardTitle>API Usage</CardTitle>
-          <CardDescription>Last 30 days</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-3">
-            <div className="space-y-1">
-              <p className="text-sm text-muted-foreground">Total Requests</p>
-              <p className="text-2xl font-bold">12,458</p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-sm text-muted-foreground">Success Rate</p>
-              <p className="text-2xl font-bold">99.8%</p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-sm text-muted-foreground">Avg Response Time</p>
-              <p className="text-2xl font-bold">127ms</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }

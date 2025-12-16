@@ -34,8 +34,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(newUser);
     if (newUser) {
       localStorage.setItem('memvault_user', JSON.stringify(newUser));
+      // Save API key to cookie for middleware
+      document.cookie = `memvault_api_key=${newUser.apiKey}; path=/; max-age=2592000; SameSite=Lax`; // 30 days
     } else {
       localStorage.removeItem('memvault_user');
+      // Clear cookie
+      document.cookie = 'memvault_api_key=; path=/; max-age=0';
     }
   };
 

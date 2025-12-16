@@ -10,7 +10,6 @@ import {
 } from "@/components/ui/card";
 import { Activity, CreditCard, DollarSign, TrendingUp, Loader2 } from "lucide-react";
 import { userApi } from "@/lib/api";
-import { DemoUserSetup } from "@/components/DemoUserSetup";
 
 interface UserStats {
   creditsUsed: number;
@@ -69,9 +68,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <>
-      <DemoUserSetup />
-      <div className="space-y-6">
+    <div className="space-y-6">
         {/* Page Header */}
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Overview</h1>
