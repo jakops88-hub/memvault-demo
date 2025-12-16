@@ -8,7 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Activity, Database, Zap, TrendingUp, Loader2, Key, Calendar } from "lucide-react";
+import { Activity, Database, Zap, TrendingUp, Loader2, Key, Calendar, CreditCard, DollarSign } from "lucide-react";
 import { userApi } from "@/lib/api";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
