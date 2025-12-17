@@ -1,0 +1,125 @@
+# Welcome to MemVault
+
+MemVault is a **Long-Term Memory as a Service** platform designed specifically for AI agents. Built on GraphRAG technology, it enables your AI systems to store, retrieve, and intelligently consolidate memories over time.
+
+## What is MemVault?
+
+Traditional AI models are stateless. They forget conversations the moment they end. MemVault solves this by providing a persistent memory layer that your AI agents can access across sessions, deployments, and even different applications.
+
+Unlike simple vector databases, MemVault uses a hybrid approach that combines:
+
+- **Vector similarity search** for semantic understanding
+- **Knowledge graph traversal** for relationship-aware retrieval
+- **Automatic consolidation** through intelligent sleep cycles
+
+This creates a memory system that doesn't just store information—it organizes, refines, and improves over time.
+
+## Key Features
+
+### Hybrid Search
+
+MemVault combines two powerful search paradigms:
+
+**Vector Similarity:** Every memory is converted into a high-dimensional embedding using state-of-the-art models. This allows semantic search where "password reset" and "forgot my login" are understood as related concepts.
+
+**Knowledge Graph Traversal:** Memories aren't isolated—they're connected through a graph structure. When you retrieve a memory, MemVault can traverse relationships to find contextually relevant information that pure vector search might miss.
+
+The result? More accurate, context-aware memory retrieval that understands both meaning and relationships.
+
+### Self-Organizing Sleep Cycles
+
+This is MemVault's core differentiator.
+
+Just like the human brain consolidates memories during sleep, MemVault runs automated **Sleep Cycles** every 6 hours. During these cycles, the system:
+
+- **Merges duplicate or highly similar memories** to reduce redundancy
+- **Strengthens important connections** between frequently co-accessed memories
+- **Archives low-value memories** to keep your active memory space efficient
+- **Updates relationship weights** in the knowledge graph based on usage patterns
+- **Cleans up noise** and irrelevant data automatically
+
+You don't need to manually manage memory hygiene—the system does it for you.
+
+**Note:** Sleep Cycles are available on Direct and Pro plans. Hobby users get standard storage without automatic consolidation.
+
+### Platform Agnostic
+
+MemVault works with any LLM or AI framework:
+
+- **OpenAI GPT models** (GPT-4, GPT-3.5)
+- **Anthropic Claude** (Claude 3, Claude 2)
+- **Open-source models** (Llama, Mistral, etc.)
+- **Custom AI systems** built with LangChain, LlamaIndex, or from scratch
+
+It's a simple REST API—no vendor lock-in, no complex SDKs. If your system can make HTTP requests, it can use MemVault.
+
+## Architecture Overview
+
+```
+┌─────────────────┐
+│   Your AI App   │
+└────────┬────────┘
+         │ HTTP API
+         ▼
+┌─────────────────┐
+│   MemVault API  │
+│  (Koyeb Worker) │
+└────────┬────────┘
+         │
+    ┌────┴────┐
+    ▼         ▼
+┌────────┐  ┌──────────────┐
+│ pgvector│  │ Redis Queue  │
+│PostgreSQL  │  (BullMQ)    │
+└─────────┘  └──────┬───────┘
+                    │
+             ┌──────▼───────┐
+             │ Sleep Cycle  │
+             │  Processor   │
+             └──────────────┘
+```
+
+## Use Cases
+
+### AI Chatbots & Assistants
+
+Give your chatbot long-term memory so it remembers user preferences, past conversations, and important context across sessions.
+
+### Content Generation Systems
+
+Maintain consistency in generated content by retrieving relevant past outputs and user feedback.
+
+### Customer Support Automation
+
+Remember customer issues, preferences, and history to provide personalized support experiences.
+
+### Knowledge Management
+
+Build a searchable knowledge base that understands semantic relationships between documents and concepts.
+
+### CI/CD Intelligence
+
+Store deployment history, test results, and incident reports to help your CI/CD pipelines learn from past events.
+
+## Getting Started
+
+Ready to give your AI long-term memory? Here's what to do next:
+
+1. **[Quick Start Guide](/docs/quickstart)** - Get up and running in 5 minutes
+2. **[Authentication](/docs/authentication)** - Learn how to secure your API requests
+3. **[Architecture Deep Dive](/docs/architecture)** - Understand how Sleep Cycles work
+4. **[API Reference](/docs/api/store-memory)** - Complete API documentation
+
+## Pricing & Plans
+
+MemVault offers three tiers:
+
+- **Hobby ($29/month):** Standard storage and retrieval, no sleep cycles
+- **Direct ($99/month):** Includes sleep cycles, priority support, higher rate limits
+- **Pro ($299/month):** Enterprise features, custom consolidation rules, dedicated support
+
+All plans include unlimited API keys, GraphRAG retrieval, and PostgreSQL + pgvector storage.
+
+---
+
+**Questions?** Check out our [API Reference](/docs/api/store-memory) or contact support at support@memvault.com.

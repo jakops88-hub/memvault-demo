@@ -1,0 +1,289 @@
+# Authentication
+
+MemVault uses API key authentication to secure your requests. This guide explains how to obtain, use, and manage your API keys.
+
+## Getting an API Key
+
+### Method 1: Sign Up (Recommended)
+
+1. Visit [memvault-demo.vercel.app](https://memvault-demo.vercel.app)
+2. Click "Get Started" and select a plan
+3. Complete the Stripe checkout process
+4. Check your email for your API key
+
+### Method 2: Dashboard
+
+If you already have an account:
+
+1. Log in to your [Dashboard](https://memvault-demo.vercel.app/dashboard)
+2. Navigate to **API Keys**
+3. Click **Create New API Key**
+4. Copy the key immediately (you won't be able to see it again)
+
+## API Key Format
+
+MemVault API keys follow this format:
+
+```
+sk_[random_string]
+```
+
+Example: `sk_1a2b3c4d5e6f7g8h9i0j`
+
+**Important:** 
+- API keys are sensitive credentials. Treat them like passwords.
+- Never commit API keys to version control.
+- Use environment variables or secrets management.
+
+## Making Authenticated Requests
+
+Include your API key in the request headers using the `x-api-key` header:
+
+```bash
+curl -X POST https://moderate-krystal-memvault-af80fe26.koyeb.app/api/memory/add \
+  -H "x-api-key: sk_your_api_key_here" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "userId": "user-123",
+    "text": "Example memory"
+  }'
+```
+
+### JavaScript Example
+
+```javascript
+const MEMVAULT_API_KEY = process.env.MEMVAULT_API_KEY
+
+const response = await fetch('https://moderate-krystal-memvault-af80fe26.koyeb.app/api/memory/add', {
+  method: 'POST',
+  headers: {
+    'x-api-key': MEMVAULT_API_KEY,
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    userId: 'user-123',
+    text: 'Example memory',
+  }),
+})
+```
+
+### Python Example
+
+```python
+import os
+import requests
+
+MEMVAULT_API_KEY = os.getenv('MEMVAULT_API_KEY')
+
+response = requests.post(
+    'https://moderate-krystal-memvault-af80fe26.koyeb.app/api/memory/add',
+    headers={
+        'x-api-key': MEMVAULT_API_KEY,
+        'Content-Type': 'application/json',
+    },
+    json={
+        'userId': 'user-123',
+        'text': 'Example memory',
+    }
+)
+```
+
+## Storing API Keys Securely
+
+### Environment Variables
+
+The most common approach is to use environment variables:
+
+**.env.local (Next.js)**
+```bash
+MEMVAULT_API_KEY=sk_your_api_key_here
+```
+
+**.env (Node.js)**
+```bash
+MEMVAULT_API_KEY=sk_your_api_key_here
+```
+
+### GitHub Actions
+
+For CI/CD workflows, use GitHub Secrets:
+
+1. Go to your repository **Settings** > **Secrets and variables** > **Actions**
+2. Click **New repository secret**
+3. Name: `MEMVAULT_API_KEY`
+4. Value: Your API key
+5. Use in workflows: `${{ secrets.MEMVAULT_API_KEY }}`
+
+### Docker
+
+Pass API keys as environment variables when running containers:
+
+```bash
+docker run -e MEMVAULT_API_KEY=sk_your_api_key_here your-image
+```
+
+Or use Docker Compose:
+
+```yaml
+services:
+  app:
+    image: your-image
+    environment:
+      - MEMVAULT_API_KEY=${MEMVAULT_API_KEY}
+```
+
+## Error Responses
+
+### 401 Unauthorized
+
+**Cause:** Missing or invalid API key
+
+```json
+{
+  "error": "Unauthorized",
+  "message": "Invalid or missing API key"
+}
+```
+
+**Solution:** 
+- Verify your API key is correct
+- Check that you're using the `x-api-key` header
+- Ensure the key hasn't been revoked
+
+### 403 Forbidden
+
+**Cause:** API key is valid but lacks permissions
+
+```json
+{
+  "error": "Forbidden",
+  "message": "This API key does not have permission to access this resource"
+}
+```
+
+**Solution:**
+- Check your subscription plan
+- Ensure you haven't exceeded your quota
+
+### 429 Too Many Requests
+
+**Cause:** Rate limit exceeded
+
+```json
+{
+  "error": "Rate Limit Exceeded",
+  "message": "You have exceeded your rate limit. Please try again later.",
+  "retryAfter": 60
+}
+```
+
+**Solution:**
+- Implement exponential backoff
+- Upgrade your plan for higher limits
+- Cache frequent queries
+
+## Best Practices
+
+### 1. Use Separate Keys for Different Environments
+
+Create different API keys for development, staging, and production:
+
+- `sk_dev_...` for local development
+- `sk_staging_...` for staging
+- `sk_prod_...` for production
+
+This allows you to revoke keys without affecting other environments.
+
+### 2. Rotate Keys Regularly
+
+Rotate your API keys periodically as a security best practice:
+
+1. Create a new API key
+2. Update your application to use the new key
+3. Verify everything works
+4. Revoke the old key
+
+### 3. Monitor API Key Usage
+
+Check your dashboard regularly to monitor:
+- Request volume per API key
+- Unusual activity patterns
+- Errors and failed requests
+
+### 4. Implement Error Handling
+
+Always handle authentication errors gracefully:
+
+```javascript
+async function makeAuthenticatedRequest(endpoint, data) {
+  try {
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'x-api-key': process.env.MEMVAULT_API_KEY,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    })
+
+    if (response.status === 401) {
+      throw new Error('Invalid API key. Please check your credentials.')
+    }
+
+    if (response.status === 429) {
+      const retryAfter = response.headers.get('Retry-After')
+      throw new Error(`Rate limit exceeded. Retry after ${retryAfter} seconds.`)
+    }
+
+    return await response.json()
+  } catch (error) {
+    console.error('Authentication error:', error)
+    throw error
+  }
+}
+```
+
+### 5. Never Log API Keys
+
+Avoid logging API keys in your application:
+
+```javascript
+// Bad
+console.log('Using API key:', apiKey)
+
+// Good
+console.log('Making authenticated request to MemVault')
+```
+
+## Managing Multiple API Keys
+
+You can create multiple API keys for:
+- Different applications
+- Different team members
+- Different environments
+- Different rate limits
+
+To manage your keys:
+
+1. Go to your [Dashboard](https://memvault-demo.vercel.app/dashboard)
+2. Navigate to **API Keys**
+3. View all active keys with their creation dates
+4. Revoke keys you no longer need
+5. Create new keys as needed
+
+## Revoking API Keys
+
+If an API key is compromised:
+
+1. Immediately revoke it in your dashboard
+2. Create a new API key
+3. Update your application with the new key
+4. Monitor for any unauthorized usage
+
+**Note:** Revoked keys stop working immediately. Any requests using revoked keys will receive a 401 error.
+
+## Next Steps
+
+- [Quick Start Guide](/docs/quick-start)
+- [API Reference](/docs/api/store-memory)
+- [GitHub Action Setup](/docs/github-action/installation)

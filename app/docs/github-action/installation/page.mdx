@@ -1,0 +1,195 @@
+# GitHub Action Installation
+
+The MemVault GitHub Action enables your CI/CD pipelines to store and retrieve memories, allowing your automated workflows to maintain context across runs.
+
+## Prerequisites
+
+Before installing the GitHub Action, you need:
+
+- A MemVault account with an active API key
+- A GitHub repository where you want to use the action
+- Basic understanding of GitHub Actions workflow syntax
+
+## Installation
+
+### Step 1: Get Your API Key
+
+1. Log in to your [MemVault Dashboard](https://memvault-demo.vercel.app/dashboard)
+2. Navigate to the API Keys section
+3. Click "Create New API Key"
+4. Copy your API key (it starts with `sk_`)
+
+**Important:** Keep your API key secure. Never commit it directly to your repository.
+
+### Step 2: Add API Key to GitHub Secrets
+
+1. Go to your GitHub repository
+2. Navigate to **Settings** > **Secrets and variables** > **Actions**
+3. Click **New repository secret**
+4. Name: `MEMVAULT_API_KEY`
+5. Value: Paste your API key
+6. Click **Add secret**
+
+### Step 3: Create Workflow File
+
+Create a new file in your repository at `.github/workflows/memvault.yml`:
+
+```yaml
+name: MemVault Memory Storage
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  store-memory:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Store deployment memory
+        uses: memvault/action@v1
+        with:
+          api-key: ${{ secrets.MEMVAULT_API_KEY }}
+          action: store
+          text: "Deployed commit ${{ github.sha }} to production"
+          metadata: |
+            {
+              "commit": "${{ github.sha }}",
+              "branch": "${{ github.ref_name }}",
+              "author": "${{ github.actor }}",
+              "repository": "${{ github.repository }}"
+            }
+
+      - name: Retrieve relevant memories
+        uses: memvault/action@v1
+        with:
+          api-key: ${{ secrets.MEMVAULT_API_KEY }}
+          action: retrieve
+          query: "Previous deployment issues"
+          limit: 5
+```
+
+## Configuration Options
+
+### Store Memory
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `api-key` | Yes | Your MemVault API key |
+| `action` | Yes | Must be `store` |
+| `text` | Yes | The memory text to store |
+| `metadata` | No | JSON object with additional context |
+| `user-id` | No | Custom user ID (defaults to repository name) |
+| `agent-id` | No | Custom agent ID (defaults to workflow name) |
+
+### Retrieve Memory
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `api-key` | Yes | Your MemVault API key |
+| `action` | Yes | Must be `retrieve` |
+| `query` | Yes | The search query |
+| `limit` | No | Number of memories to retrieve (default: 10) |
+| `user-id` | No | Custom user ID (defaults to repository name) |
+
+## Example Use Cases
+
+### 1. Track Deployment History
+
+Store information about each deployment to maintain a history of what was deployed and when:
+
+```yaml
+- name: Store deployment info
+  uses: memvault/action@v1
+  with:
+    api-key: ${{ secrets.MEMVAULT_API_KEY }}
+    action: store
+    text: "Deployed version ${{ github.ref_name }} at ${{ github.event.head_commit.timestamp }}"
+    metadata: |
+      {
+        "version": "${{ github.ref_name }}",
+        "timestamp": "${{ github.event.head_commit.timestamp }}",
+        "environment": "production"
+      }
+```
+
+### 2. Learn from Test Failures
+
+Store test failure information to identify patterns over time:
+
+```yaml
+- name: Store test failure
+  if: failure()
+  uses: memvault/action@v1
+  with:
+    api-key: ${{ secrets.MEMVAULT_API_KEY }}
+    action: store
+    text: "Test suite failed in ${{ github.workflow }}: ${{ steps.test.outputs.error }}"
+    metadata: |
+      {
+        "workflow": "${{ github.workflow }}",
+        "commit": "${{ github.sha }}",
+        "test_results": "${{ steps.test.outputs.results }}"
+      }
+```
+
+### 3. Context-Aware PR Comments
+
+Retrieve relevant memories before commenting on PRs:
+
+```yaml
+- name: Get relevant context
+  id: context
+  uses: memvault/action@v1
+  with:
+    api-key: ${{ secrets.MEMVAULT_API_KEY }}
+    action: retrieve
+    query: "Similar pull requests and their outcomes"
+    limit: 3
+
+- name: Comment on PR
+  uses: actions/github-script@v6
+  with:
+    script: |
+      const memories = ${{ steps.context.outputs.memories }}
+      github.rest.issues.createComment({
+        issue_number: context.issue.number,
+        owner: context.repo.owner,
+        repo: context.repo.repo,
+        body: `Based on similar PRs: ${memories[0].text}`
+      })
+```
+
+## Best Practices
+
+1. **Use descriptive memory text:** Make your memory text clear and searchable
+2. **Include metadata:** Add structured data for better filtering and retrieval
+3. **Set appropriate limits:** Don't retrieve more memories than you need
+4. **Handle failures gracefully:** Use `continue-on-error: true` for non-critical memory operations
+5. **Monitor your usage:** Check your dashboard regularly to track API usage and costs
+
+## Troubleshooting
+
+### Authentication Errors
+
+If you see "Invalid API key" errors:
+- Verify your API key is correct in GitHub Secrets
+- Check that the secret name matches your workflow file
+- Ensure your API key hasn't been revoked in the MemVault dashboard
+
+### Rate Limiting
+
+If you hit rate limits:
+- Reduce the frequency of memory operations
+- Upgrade your MemVault plan for higher limits
+- Implement caching to reduce duplicate retrievals
+
+## Next Steps
+
+- [Configuration Options](/docs/github-action/configuration)
+- [Advanced Examples](/docs/github-action/examples)
+- [API Reference](/docs/api/store-memory)

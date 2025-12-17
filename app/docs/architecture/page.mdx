@@ -1,0 +1,410 @@
+# The Sleep Cycle Engine
+
+This is MemVault's core differentiator. While other vector databases simply store and retrieve data, MemVault actively manages and optimizes your memories through an automated consolidation process inspired by biological sleep cycles.
+
+## Why Sleep Cycles?
+
+The human brain doesn't just store memories—it actively processes them during sleep. Sleep cycles:
+
+- **Consolidate** short-term memories into long-term storage
+- **Strengthen** important connections while pruning weak ones
+- **Merge** related memories to create unified concepts
+- **Clear** irrelevant or redundant information
+
+MemVault applies these same principles to your AI's memory system.
+
+> "Just like a biological brain, MemVault needs rest to consolidate information."
+
+## How It Works
+
+### The 6-Hour Cycle
+
+Every 6 hours, MemVault's Sleep Cycle Engine runs as a background process. This is not a blocking operation—your API continues to work normally while consolidation happens asynchronously.
+
+Here's what happens during each cycle:
+
+### Phase 1: Memory Analysis
+
+```
+┌─────────────────────────────────┐
+│  Scan all unprocessed memories  │
+│  from the past 6 hours          │
+└────────────┬────────────────────┘
+             │
+             ▼
+┌─────────────────────────────────┐
+│  Calculate similarity scores    │
+│  between memory pairs           │
+└────────────┬────────────────────┘
+             │
+             ▼
+┌─────────────────────────────────┐
+│  Identify memory clusters       │
+│  (groups of related memories)   │
+└─────────────────────────────────┘
+```
+
+The system identifies memories that are semantically similar or frequently co-accessed.
+
+### Phase 2: Entity Extraction & Deduplication
+
+MemVault extracts entities (people, places, concepts) from memory text using NLP:
+
+```
+Memory 1: "User prefers dark mode in settings"
+Memory 2: "Customer wants dark theme enabled"
+Memory 3: "User requested dark mode preference"
+
+         ↓ Entity Extraction ↓
+
+Entity: "dark_mode_preference"
+Occurrences: 3
+Confidence: High
+
+         ↓ Consolidation ↓
+
+Consolidated Memory: "User prefers dark mode interface (3 confirmations)"
+```
+
+Duplicate or near-duplicate entities are merged, preserving the most complete information.
+
+### Phase 3: Relationship Graph Update
+
+Memories aren't isolated—they exist in a knowledge graph. The Sleep Cycle updates relationship weights:
+
+```
+[User A] ─(prefers)─> [Dark Mode]
+   │
+   └─(asked_about)─> [Settings]
+                           │
+                           └─(related_to)─> [UI Preferences]
+```
+
+Relationships that are frequently traversed during retrieval get **stronger weights**. Unused relationships get **weaker** or are removed.
+
+### Phase 4: Noise Reduction
+
+Low-value memories are identified and archived:
+
+- Memories with very low retrieval frequency
+- Redundant information already captured elsewhere
+- Outdated context (e.g., temporary states)
+
+These aren't deleted—they're moved to cold storage where they won't clutter active memory space but can still be retrieved if explicitly requested.
+
+### Phase 5: Optimization
+
+The final step optimizes vector embeddings:
+
+1. **Recalculate embeddings** for consolidated memories
+2. **Update vector index** in pgvector for faster search
+3. **Prune graph edges** with weight below threshold
+4. **Generate summary statistics** for monitoring
+
+## Technical Implementation
+
+### Architecture
+
+```
+┌─────────────────────────┐
+│   Redis Queue (BullMQ)   │
+│                         │
+│  sleep-cycle-job:       │
+│    - Cron: 0 */6 * * *  │
+│    - Worker: 1          │
+│    - Priority: Low      │
+└───────────┬─────────────┘
+            │
+            ▼
+┌─────────────────────────┐
+│  SleepCycleProcessor    │
+│                         │
+│  1. Load unprocessed    │
+│  2. Cluster similar     │
+│  3. Merge duplicates    │
+│  4. Update graph        │
+│  5. Archive noise       │
+└───────────┬─────────────┘
+            │
+            ▼
+┌─────────────────────────┐
+│  PostgreSQL + pgvector  │
+│                         │
+│  - memories table       │
+│  - entities table       │
+│  - relationships table  │
+│  - consolidation_logs   │
+└─────────────────────────┘
+```
+
+### Job Configuration
+
+The Sleep Cycle runs as a BullMQ job:
+
+```javascript
+// Simplified example of actual implementation
+queue.add('sleep-cycle', {}, {
+  repeat: {
+    cron: '0 */6 * * *', // Every 6 hours
+  },
+  priority: 10, // Low priority, won't block user requests
+  removeOnComplete: true,
+  removeOnFail: false,
+})
+```
+
+### Processing Logic
+
+```javascript
+async function processSleepCycle(userId: string) {
+  // 1. Get unprocessed memories
+  const memories = await getUnprocessedMemories(userId, '6h')
+  
+  // 2. Calculate similarity matrix
+  const similarityMatrix = await calculateSimilarities(memories)
+  
+  // 3. Cluster related memories
+  const clusters = clusterBySimilarity(similarityMatrix, threshold: 0.85)
+  
+  // 4. Merge duplicates in each cluster
+  for (const cluster of clusters) {
+    const consolidated = await mergeMemories(cluster)
+    await storeConsolidatedMemory(consolidated)
+    await archiveOriginals(cluster)
+  }
+  
+  // 5. Update knowledge graph
+  await updateRelationshipWeights(userId)
+  
+  // 6. Archive low-value memories
+  await archiveInfrequentMemories(userId, minAccess: 1, age: '30d')
+  
+  // 7. Log results
+  await logConsolidation(userId, {
+    processed: memories.length,
+    consolidated: clusters.length,
+    archived: archivedCount,
+  })
+}
+```
+
+## Benefits
+
+### 1. Reduced Storage Costs
+
+By consolidating duplicate information and archiving noise, you store less data while maintaining the same level of knowledge.
+
+**Example:**
+- Before: 1,000 memories (500 duplicates)
+- After: 550 memories (500 consolidated + 50 archived)
+- Savings: 45% storage reduction
+
+### 2. Faster Retrieval
+
+Fewer memories = faster vector search. Plus, the knowledge graph helps you find related context without scanning everything.
+
+**Example:**
+- Before: Search through 10,000 vectors
+- After: Search through 6,000 vectors + graph traversal
+- Result: 40% faster queries
+
+### 3. Improved Accuracy
+
+Consolidated memories have richer context from multiple sources, leading to better semantic understanding.
+
+**Example:**
+```
+Original Memories:
+1. "User likes coffee" (0.75 similarity)
+2. "Customer drinks espresso daily" (0.73 similarity)
+3. "Prefers strong coffee" (0.71 similarity)
+
+Consolidated Memory:
+"User has strong preference for coffee, specifically espresso, and consumes it daily" (0.92 similarity)
+```
+
+### 4. Self-Healing System
+
+Noise and errors naturally get filtered out over time. The system learns what's important and what's not.
+
+## Plan Availability
+
+Sleep Cycles are available on specific plans:
+
+| Plan | Sleep Cycles | Frequency | Custom Rules |
+|------|--------------|-----------|--------------|
+| **Hobby** | ❌ No | - | - |
+| **Direct** | ✅ Yes | Every 6 hours | No |
+| **Pro** | ✅ Yes | Every 6 hours | ✅ Yes |
+
+**Hobby plan users** get standard storage and retrieval but no automatic consolidation. Your memories stay as-is unless you manually manage them.
+
+**Direct and Pro users** get the full Sleep Cycle engine running automatically.
+
+**Pro users** can additionally configure:
+- Custom consolidation rules
+- Custom similarity thresholds
+- Entity extraction preferences
+- Archival policies
+
+## Monitoring Sleep Cycles
+
+You can monitor Sleep Cycle activity in your dashboard:
+
+1. Go to **Dashboard** → **Sleep Cycles**
+2. View consolidation history
+3. See statistics:
+   - Memories processed
+   - Duplicates merged
+   - Storage saved
+   - Graph edges updated
+
+Each cycle generates a log entry:
+
+```json
+{
+  "cycle_id": "cycle_2025-12-17-06",
+  "user_id": "user-123",
+  "started_at": "2025-12-17T06:00:00Z",
+  "completed_at": "2025-12-17T06:12:34Z",
+  "stats": {
+    "memories_analyzed": 1243,
+    "clusters_found": 87,
+    "memories_consolidated": 234,
+    "memories_archived": 45,
+    "relationships_updated": 456,
+    "storage_saved_mb": 12.3
+  }
+}
+```
+
+## Best Practices
+
+### 1. Store Rich Context
+
+The more context you provide, the better the Sleep Cycle can consolidate:
+
+```javascript
+// Good: Rich context
+await storeMemory({
+  userId: 'user-123',
+  text: 'User requested password reset due to forgotten credentials. Sent reset email to john@example.com. User successfully reset password 5 minutes later.',
+  metadata: {
+    category: 'account_security',
+    action: 'password_reset',
+    outcome: 'success',
+    duration_minutes: 5,
+  }
+})
+
+// Bad: Minimal context
+await storeMemory({
+  userId: 'user-123',
+  text: 'Password reset',
+})
+```
+
+### 2. Use Consistent Terminology
+
+The consolidation engine works better when you use consistent terms:
+
+```javascript
+// Good: Consistent
+"User prefers dark mode"
+"User wants dark mode enabled"
+"User requested dark mode"
+
+// Bad: Inconsistent
+"User likes dark theme"
+"Customer wants night mode"
+"Enable dark UI for user"
+```
+
+### 3. Let the System Work
+
+Don't manually delete memories unless absolutely necessary. The Sleep Cycle will handle cleanup automatically.
+
+### 4. Monitor Consolidation Logs
+
+Check your dashboard regularly to see how consolidation is performing. If you notice issues (over-consolidation, under-consolidation), contact support to adjust thresholds.
+
+## Limitations
+
+### Not Real-Time
+
+Consolidation happens every 6 hours, not immediately. If you need instant deduplication, handle it in your application logic before storing.
+
+### Cannot Unconsolidate
+
+Once memories are consolidated, the originals are archived. You can retrieve them from cold storage, but they won't automatically return to active memory.
+
+### Requires Minimum Data
+
+The system needs at least 10 memories to start identifying patterns. With less data, consolidation is minimal.
+
+## Under the Hood: The Algorithm
+
+For those interested in the technical details, here's a simplified version of the clustering algorithm:
+
+```python
+# Pseudocode for memory clustering
+def cluster_memories(memories, threshold=0.85):
+    similarity_matrix = calculate_cosine_similarity(memories)
+    clusters = []
+    visited = set()
+    
+    for i, memory in enumerate(memories):
+        if i in visited:
+            continue
+            
+        cluster = [memory]
+        visited.add(i)
+        
+        for j, other_memory in enumerate(memories[i+1:], start=i+1):
+            if similarity_matrix[i][j] >= threshold:
+                cluster.append(other_memory)
+                visited.add(j)
+        
+        if len(cluster) > 1:
+            clusters.append(cluster)
+    
+    return clusters
+
+def consolidate_cluster(cluster):
+    # Weighted combination of all texts
+    texts = [m.text for m in cluster]
+    weights = [m.access_count for m in cluster]
+    
+    # Generate consolidated text using LLM
+    consolidated_text = llm.summarize(texts, weights)
+    
+    # Merge metadata
+    merged_metadata = merge_metadata([m.metadata for m in cluster])
+    
+    # Calculate new embedding
+    embedding = embed_model.encode(consolidated_text)
+    
+    return ConsolidatedMemory(
+        text=consolidated_text,
+        metadata=merged_metadata,
+        embedding=embedding,
+        source_ids=[m.id for m in cluster],
+        consolidation_count=len(cluster)
+    )
+```
+
+## Future Enhancements
+
+We're continuously improving the Sleep Cycle engine. Planned features:
+
+- **Adaptive frequency:** Run more/less often based on memory growth rate
+- **User-specific patterns:** Learn each user's memory patterns over time
+- **Predictive archival:** Archive memories before they become noise
+- **Custom consolidation prompts:** Let Pro users define how memories should merge
+
+## Next Steps
+
+- [View the complete API Reference](/docs/api/store-memory)
+- [Integrate with GitHub Actions](/docs/quickstart)
+- [Upgrade to unlock Sleep Cycles](/pricing)
+- [Explore advanced GraphRAG features](/docs/advanced/graphrag)

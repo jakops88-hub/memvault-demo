@@ -1,0 +1,295 @@
+# Integrate with GitHub Actions
+
+The MemVault GitHub Action allows your CI/CD pipelines to automatically index repository documentation, store deployment history, and retrieve relevant context from past builds.
+
+## Why Use MemVault in CI/CD?
+
+Modern software development generates massive amounts of context:
+
+- Deployment logs and outcomes
+- Test results and failure patterns
+- Code review discussions
+- Documentation changes
+- Performance metrics
+
+Instead of losing this valuable information after each run, MemVault stores it in a searchable, semantically-aware memory system. Your pipelines can then retrieve relevant historical context to make smarter decisions.
+
+## Prerequisites
+
+Before you start, you need:
+
+1. A MemVault account with an active API key
+2. A GitHub repository with Actions enabled
+3. Basic familiarity with GitHub Actions workflow syntax
+
+## Installation
+
+### Step 1: Get Your API Key
+
+1. Sign up at [memvault-demo.vercel.app](https://memvault-demo.vercel.app/pricing)
+2. Complete checkout and check your email for your API key
+3. Your key will start with `sk_`
+
+### Step 2: Add API Key to GitHub Secrets
+
+1. Go to your repository on GitHub
+2. Click **Settings** → **Secrets and variables** → **Actions**
+3. Click **New repository secret**
+4. Name: `MEMVAULT_API_KEY`
+5. Value: Paste your API key
+6. Click **Add secret**
+
+### Step 3: Create Workflow File
+
+Create `.github/workflows/memvault-sync.yml` in your repository:
+
+```yaml
+name: Sync to MemVault
+on:
+  push:
+    branches: [ main ]
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: MemVault Sync
+        uses: jakops88-hub/long-term-memory-api/.github/actions/memvault-sync@v1
+        with:
+          memvault_api_key: ${{ secrets.MEMVAULT_API_KEY }}
+```
+
+That's it. Every time you push to `main`, your repository documentation will be synced to MemVault.
+
+## Configuration Options
+
+The `memvault-sync` action supports several configuration options:
+
+```yaml
+- name: MemVault Sync
+  uses: jakops88-hub/long-term-memory-api/.github/actions/memvault-sync@v1
+  with:
+    # Required: Your MemVault API key
+    memvault_api_key: ${{ secrets.MEMVAULT_API_KEY }}
+    
+    # Optional: Custom user ID (defaults to repository name)
+    user_id: my-org-repos
+    
+    # Optional: Custom agent ID (defaults to workflow name)
+    agent_id: ci-pipeline
+    
+    # Optional: Files to index (defaults to all markdown files)
+    include_patterns: |
+      docs/**/*.md
+      README.md
+      CHANGELOG.md
+    
+    # Optional: Files to exclude
+    exclude_patterns: |
+      node_modules/**
+      .github/**
+```
+
+## Use Cases
+
+### 1. Index Documentation Automatically
+
+Keep your documentation searchable and up-to-date:
+
+```yaml
+name: Sync Docs to MemVault
+on:
+  push:
+    paths:
+      - 'docs/**'
+      - '*.md'
+    branches: [ main ]
+jobs:
+  sync-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Index Documentation
+        uses: jakops88-hub/long-term-memory-api/.github/actions/memvault-sync@v1
+        with:
+          memvault_api_key: ${{ secrets.MEMVAULT_API_KEY }}
+          include_patterns: |
+            docs/**/*.md
+            README.md
+```
+
+### 2. Store Deployment History
+
+Track every deployment with context:
+
+```yaml
+name: Deploy to Production
+on:
+  push:
+    branches: [ main ]
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Deploy Application
+        run: ./deploy.sh
+        
+      - name: Store Deployment Memory
+        if: success()
+        uses: jakops88-hub/long-term-memory-api/.github/actions/memvault-sync@v1
+        with:
+          memvault_api_key: ${{ secrets.MEMVAULT_API_KEY }}
+          user_id: production-deployments
+          custom_text: |
+            Deployed commit ${{ github.sha }} to production.
+            Branch: ${{ github.ref_name }}
+            Author: ${{ github.actor }}
+            Time: ${{ github.event.head_commit.timestamp }}
+            Status: Success
+```
+
+### 3. Learn from Test Failures
+
+Store test failure information to identify patterns:
+
+```yaml
+name: Run Tests
+on:
+  pull_request:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Run Test Suite
+        id: tests
+        run: npm test
+        continue-on-error: true
+        
+      - name: Store Test Failure
+        if: failure()
+        uses: jakops88-hub/long-term-memory-api/.github/actions/memvault-sync@v1
+        with:
+          memvault_api_key: ${{ secrets.MEMVAULT_API_KEY }}
+          user_id: test-failures
+          custom_text: |
+            Test suite failed in PR #${{ github.event.pull_request.number }}
+            Commit: ${{ github.sha }}
+            Author: ${{ github.actor }}
+            Files changed: ${{ github.event.pull_request.changed_files }}
+```
+
+### 4. Context-Aware Code Reviews
+
+Retrieve relevant past discussions before commenting:
+
+```yaml
+name: PR Context
+on:
+  pull_request:
+    types: [opened]
+jobs:
+  add-context:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Get Similar PRs
+        id: context
+        uses: jakops88-hub/long-term-memory-api/.github/actions/memvault-retrieve@v1
+        with:
+          memvault_api_key: ${{ secrets.MEMVAULT_API_KEY }}
+          query: ${{ github.event.pull_request.title }}
+          limit: 3
+          
+      - name: Comment on PR
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const memories = ${{ steps.context.outputs.memories }}
+            if (memories.length > 0) {
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: `### Similar Past PRs\n\n${memories.map(m => `- ${m.text}`).join('\n')}`
+              })
+            }
+```
+
+## How It Works
+
+When the action runs:
+
+1. **Scans Repository:** Finds all matching files based on include/exclude patterns
+2. **Extracts Content:** Reads file contents and metadata (path, commit, author)
+3. **Stores Memories:** Sends each file to MemVault's `/api/memory/add` endpoint
+4. **Metadata Enrichment:** Automatically adds Git context (commit SHA, branch, author)
+
+Each stored memory includes:
+
+- **Text:** File content or custom message
+- **Metadata:** Git context (commit, branch, author, timestamp)
+- **User ID:** Repository identifier
+- **Agent ID:** Workflow identifier
+
+This allows you to query memories by repository, workflow, or content similarity.
+
+## Advanced: Custom Actions
+
+You can also use the MemVault API directly in GitHub Actions:
+
+```yaml
+- name: Custom Memory Storage
+  run: |
+    curl -X POST https://moderate-krystal-memvault-af80fe26.koyeb.app/api/memory/add \
+      -H "x-api-key: ${{ secrets.MEMVAULT_API_KEY }}" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "userId": "${{ github.repository }}",
+        "text": "Custom event: Something important happened",
+        "metadata": {
+          "commit": "${{ github.sha }}",
+          "workflow": "${{ github.workflow }}",
+          "custom_field": "value"
+        }
+      }'
+```
+
+## Best Practices
+
+1. **Use descriptive user IDs:** Organize memories by project/environment
+2. **Include rich metadata:** More context = better retrieval
+3. **Don't over-sync:** Only sync on relevant events (main branch, releases)
+4. **Handle failures gracefully:** Use `continue-on-error: true` for non-critical syncs
+5. **Monitor your usage:** Check your dashboard to track API calls and costs
+
+## Troubleshooting
+
+### Action Fails with "Invalid API Key"
+
+- Verify secret name is `MEMVAULT_API_KEY` (exact match)
+- Check the key hasn't been revoked in your dashboard
+- Ensure you're using the correct secret reference: `${{ secrets.MEMVAULT_API_KEY }}`
+
+### Files Not Being Synced
+
+- Check your `include_patterns` and `exclude_patterns`
+- Verify files exist in the repository
+- Check workflow logs for scanning results
+
+### Rate Limiting
+
+- Reduce sync frequency
+- Use more specific include patterns
+- Upgrade your MemVault plan for higher limits
+
+## Next Steps
+
+- [View all configuration options](/docs/github-action/configuration)
+- [Explore more examples](/docs/github-action/examples)
+- [Learn about Sleep Cycles](/docs/architecture)
+- [Read the API Reference](/docs/api/store-memory)
