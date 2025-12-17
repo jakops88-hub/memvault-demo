@@ -15,6 +15,11 @@ export default function LandingPage() {
             <span className="text-2xl font-bold text-white">MemVault</span>
           </div>
           <div className="flex items-center gap-4">
+            <Link href="/docs">
+              <Button variant="ghost" className="text-white hover:text-blue-400">
+                Docs
+              </Button>
+            </Link>
             <Link href="/pricing">
               <Button variant="ghost" className="text-white hover:text-blue-400">
                 Pricing
@@ -38,11 +43,18 @@ export default function LandingPage() {
           <p className="text-lg text-slate-400 mb-8">
             MemVault is a vector database API that lets your AI agents remember conversations, user preferences, and important context across sessions. Built with PostgreSQL + pgvector for production-grade performance.
           </p>
-          <Link href="/pricing">
-            <Button size="lg" className="text-lg px-8 py-6">
-              Get Started - From $29/month
-            </Button>
-          </Link>
+          <div className="flex items-center justify-center gap-4">
+            <Link href="/pricing">
+              <Button size="lg" className="text-lg px-8 py-6">
+                Get Started - From $29/month
+              </Button>
+            </Link>
+            <Link href="/docs">
+              <Button size="lg" variant="outline" className="text-lg px-8 py-6 border-blue-500 text-blue-400 hover:bg-blue-950/50">
+                Read the Docs
+              </Button>
+            </Link>
+          </div>
         </div>
 
         {/* Use Cases */}
