@@ -10,6 +10,9 @@ const API_BASE_URL = (() => {
   return url.replace(/\/$/, '');
 })();
 
+// Admin API key for privileged operations
+const ADMIN_API_KEY = process.env.NEXT_PUBLIC_ADMIN_API_KEY;
+
 export interface ApiResponse<T> {
   data?: T;
   error?: string;
@@ -216,3 +219,62 @@ export const userApi = {
     return { success: true };
   },
 };
+
+// Admin API
+export const adminApi = {
+  /**
+   * Call admin endpoint with admin API key authentication
+   * @param endpoint - The admin endpoint path (e.g., '/admin/consolidate')
+   * @param options - Fetch options (method, body, etc.)
+   */
+  async callAdminEndpoint(endpoint: string, options: RequestInit = {}) {
+    if (!ADMIN_API_KEY) {
+      throw new Error('Admin API key not configured. Set NEXT_PUBLIC_ADMIN_API_KEY in environment variables.');
+    }
+
+    const response = await fetch(`${API_BASE_URL}/api${endpoint}`, {
+      ...options,
+      headers: {
+        'X-API-Key': ADMIN_API_KEY,
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Admin request failed: ${response.statusText}`);
+    }
+
+    return response.json();
+  },
+
+  /**
+   * Trigger manual memory consolidation (sleep cycle)
+   * @param userId - Optional user ID to consolidate memories for (if not provided, consolidates all)
+   */
+  async triggerConsolidation(userId?: string) {
+    return this.callAdminEndpoint('/admin/consolidate', {
+      method: 'POST',
+      body: JSON.stringify({ userId }),
+    });
+  },
+
+  /**
+   * Get system-wide statistics
+   */
+  async getSystemStats() {
+    return this.callAdminEndpoint('/admin/stats', {
+      method: 'GET',
+    });
+  },
+
+  /**
+   * Force rebuild vector index
+   */
+  async rebuildVectorIndex() {
+    return this.callAdminEndpoint('/admin/rebuild-index', {
+      method: 'POST',
+    });
+  },
+};
+
