@@ -1,0 +1,436 @@
+# Quick Start Guide
+
+Get started with MemVault in less than 5 minutes. This guide covers both the official SDK and direct REST API usage.
+
+## Installation
+
+### Option 1: TypeScript/JavaScript SDK (Recommended)
+
+Install the official MemVault SDK from NPM:
+
+```bash
+npm install @memvault/client
+```
+
+**NPM Package:** [@memvault/client](https://www.npmjs.com/package/@memvault/client)
+
+**GitHub Repository:** [Long-Term-Memory-API/sdk](https://github.com/jakops88-hub/Long-Term-Memory-API/tree/main/sdk)
+
+### Option 2: Direct REST API
+
+MemVault is a REST API, so you can use it with any HTTP client without installing dependencies.
+
+```bash
+# Example using curl
+curl -X POST https://moderate-krystal-memvault-af80fe26.koyeb.app/api/memory/add \
+  -H "x-api-key: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "userId": "user-123",
+    "text": "User prefers dark mode and concise responses",
+    "metadata": {
+      "category": "preference"
+    }
+  }'
+```
+
+## Get Your API Key
+
+Before you can use MemVault, you need an API key:
+
+1. Sign up at [memvault-demo.vercel.app](https://memvault-demo.vercel.app)
+2. Complete the checkout process
+3. Check your email for your API key (starts with `sk_`)
+
+## Using the SDK
+
+### Initialize the Client
+
+```typescript
+import { MemVault } from '@memvault/client';
+
+const memvault = new MemVault(process.env.MEMVAULT_API_KEY);
+```
+
+**Best Practice:** Always store your API key in environment variables, never hardcode it.
+
+### Store a Memory
+
+```typescript
+// Simple memory storage
+await memvault.addMemory("Meeting was about Q4 budget planning");
+
+// With metadata for better organization
+await memvault.addMemory(
+  "Customer requested refund for order #12345 due to delayed shipping",
+  {
+    orderId: "12345",
+    category: "support",
+    priority: "high"
+  }
+);
+```
+
+### Retrieve Memories
+
+Use semantic search to find relevant memories:
+
+```typescript
+const results = await memvault.retrieve("budget decisions");
+
+console.log(results.memories);
+// [
+//   {
+//     text: "Meeting was about Q4 budget planning",
+//     similarity: 0.92,
+//     metadata: { ... },
+//     createdAt: "2025-12-17T10:00:00Z"
+//   }
+// ]
+```
+
+### Get User Information
+
+Check your account details and credit balance:
+
+```typescript
+const user = await memvault.getUser();
+
+console.log(user.tier);           // "direct" | "pro" | "hobby"
+console.log(user.creditsBalance); // 1500
+console.log(user.email);          // "user@example.com"
+```
+
+## Using the REST API
+
+If you're not using JavaScript/TypeScript, you can call the REST API directly:
+
+### Store Memory Endpoint
+
+```http
+POST https://moderate-krystal-memvault-af80fe26.koyeb.app/api/memory/add
+Content-Type: application/json
+x-api-key: sk_your_api_key_here
+
+{
+  "userId": "user-123",
+  "text": "Customer requested password reset due to forgotten credentials",
+  "metadata": {
+    "category": "account_security",
+    "action": "password_reset",
+    "outcome": "success"
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "memoryId": "mem_abc123xyz",
+  "message": "Memory stored successfully"
+}
+```
+
+### Retrieve Memory Endpoint
+
+```http
+POST https://moderate-krystal-memvault-af80fe26.koyeb.app/api/graphrag/retrieve
+Content-Type: application/json
+x-api-key: sk_your_api_key_here
+
+{
+  "userId": "user-123",
+  "query": "password issues",
+  "limit": 5
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "memories": [
+    {
+      "id": "mem_abc123xyz",
+      "text": "Customer requested password reset due to forgotten credentials",
+      "similarity": 0.89,
+      "metadata": {
+        "category": "account_security",
+        "action": "password_reset",
+        "outcome": "success"
+      },
+      "createdAt": "2025-12-17T10:00:00Z"
+    }
+  ]
+}
+```
+
+## Complete SDK Example
+
+Here's a full example showing common patterns:
+
+```typescript
+import { MemVault } from '@memvault/client';
+
+const memvault = new MemVault(process.env.MEMVAULT_API_KEY!);
+
+async function handleUserConversation(userMessage: string) {
+  // 1. Retrieve relevant context from past conversations
+  const context = await memvault.retrieve(userMessage, { limit: 3 });
+  
+  // 2. Use context to inform your AI response
+  const aiResponse = await generateAIResponse(userMessage, context.memories);
+  
+  // 3. Store the new conversation for future reference
+  await memvault.addMemory(
+    `User asked: "${userMessage}". AI responded: "${aiResponse}"`,
+    {
+      category: "conversation",
+      timestamp: new Date().toISOString()
+    }
+  );
+  
+  return aiResponse;
+}
+
+// Check account status
+const user = await memvault.getUser();
+if (user.creditsBalance < 100) {
+  console.warn("Low credits! Consider upgrading your plan.");
+}
+```
+
+## SDK API Reference
+
+### Constructor
+
+```typescript
+new MemVault(apiKey: string, options?: MemVaultOptions)
+```
+
+**Options:**
+- `baseUrl?: string` - Custom API base URL (defaults to production)
+- `timeout?: number` - Request timeout in milliseconds (default: 30000)
+
+### Methods
+
+#### `addMemory(text: string, metadata?: object): Promise<AddMemoryResponse>`
+
+Store a new memory.
+
+**Parameters:**
+- `text` - The memory content to store
+- `metadata` - Optional structured data for filtering
+
+**Returns:**
+```typescript
+{
+  success: true,
+  memoryId: string,
+  message: string
+}
+```
+
+#### `retrieve(query: string, options?: RetrieveOptions): Promise<RetrieveResponse>`
+
+Search for relevant memories using semantic search.
+
+**Parameters:**
+- `query` - Search query text
+- `options.limit?` - Maximum number of results (default: 10)
+- `options.threshold?` - Minimum similarity score (0-1)
+
+**Returns:**
+```typescript
+{
+  success: true,
+  memories: Array<{
+    id: string,
+    text: string,
+    similarity: number,
+    metadata: object,
+    createdAt: string
+  }>
+}
+```
+
+#### `getUser(): Promise<UserResponse>`
+
+Get current user information.
+
+**Returns:**
+```typescript
+{
+  id: string,
+  email: string,
+  tier: "hobby" | "direct" | "pro",
+  creditsBalance: number,
+  createdAt: string
+}
+```
+
+## Common Patterns
+
+### Pattern 1: Contextual AI Chatbot
+
+Build a chatbot that remembers conversations:
+
+```typescript
+import { MemVault } from '@memvault/client';
+
+const memvault = new MemVault(process.env.MEMVAULT_API_KEY!);
+
+async function chatbot(userId: string, message: string) {
+  // Retrieve relevant past conversations
+  const memories = await memvault.retrieve(`user:${userId} ${message}`, {
+    limit: 5
+  });
+  
+  // Generate AI response with context
+  const response = await openai.chat.completions.create({
+    model: "gpt-4",
+    messages: [
+      {
+        role: "system",
+        content: `Previous context: ${memories.memories.map(m => m.text).join('\n')}`
+      },
+      { role: "user", content: message }
+    ]
+  });
+  
+  // Store conversation
+  await memvault.addMemory(
+    `${userId}: ${message} | AI: ${response.choices[0].message.content}`,
+    { userId, category: "conversation" }
+  );
+  
+  return response.choices[0].message.content;
+}
+```
+
+### Pattern 2: Knowledge Base Search
+
+Build a searchable knowledge base:
+
+```typescript
+// Store knowledge articles
+await memvault.addMemory(
+  "To reset your password, click Forgot Password and follow the email instructions",
+  { category: "knowledge", topic: "account" }
+);
+
+// Search knowledge base
+const results = await memvault.retrieve("how to change password");
+console.log(results.memories[0].text);
+// "To reset your password, click Forgot Password..."
+```
+
+### Pattern 3: Multi-User System
+
+Store and retrieve memories for different users:
+
+```typescript
+// Store user-specific memory
+await memvault.addMemory(
+  "User prefers dark mode",
+  { userId: "user-123", category: "preferences" }
+);
+
+// Retrieve user-specific memories
+const userPrefs = await memvault.retrieve("user-123 preferences");
+```
+
+## Error Handling
+
+The SDK throws descriptive errors that you should handle:
+
+```typescript
+try {
+  await memvault.addMemory("Test memory");
+} catch (error) {
+  if (error.message.includes('Unauthorized')) {
+    console.error('Invalid API key');
+  } else if (error.message.includes('Rate limit')) {
+    console.error('Too many requests, please wait');
+  } else {
+    console.error('Unexpected error:', error);
+  }
+}
+```
+
+## Best Practices
+
+### 1. Always Use Environment Variables
+
+```typescript
+// Good
+const memvault = new MemVault(process.env.MEMVAULT_API_KEY!);
+
+// Bad - Never hardcode API keys
+const memvault = new MemVault('sk_abc123...');
+```
+
+### 2. Store Rich Context
+
+```typescript
+// Good - Rich context
+await memvault.addMemory(
+  "User reported bug in mobile app: Login button not working on iOS 17",
+  {
+    platform: "ios",
+    version: "17",
+    severity: "high",
+    component: "auth"
+  }
+);
+
+// Bad - Minimal context
+await memvault.addMemory("Bug reported");
+```
+
+### 3. Use Descriptive Queries
+
+```typescript
+// Good - Specific query
+const results = await memvault.retrieve("iOS login authentication issues");
+
+// Bad - Too vague
+const results = await memvault.retrieve("problems");
+```
+
+### 4. Monitor Your Credits
+
+```typescript
+const user = await memvault.getUser();
+
+if (user.creditsBalance < 100) {
+  // Alert or upgrade plan
+  console.warn("Low credits remaining");
+}
+```
+
+## TypeScript Support
+
+The SDK is written in TypeScript and includes full type definitions:
+
+```typescript
+import { MemVault, Memory, RetrieveOptions } from '@memvault/client';
+
+const memvault = new MemVault(process.env.MEMVAULT_API_KEY!);
+
+// Full IntelliSense support
+const options: RetrieveOptions = {
+  limit: 5,
+  threshold: 0.8
+};
+
+const memories: Memory[] = (await memvault.retrieve("query", options)).memories;
+```
+
+## Next Steps
+
+- [Learn about Authentication](/docs/authentication)
+- [Explore Memory Consolidation](/docs/architecture)
+- [Integrate with GitHub Actions](/docs/github-action/installation)
+- [View the SDK on GitHub](https://github.com/jakops88-hub/Long-Term-Memory-API/tree/main/sdk)

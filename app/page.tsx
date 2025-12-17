@@ -40,9 +40,14 @@ export default function LandingPage() {
           <p className="text-xl text-slate-300 mb-4">
             Give your AI applications long-term memory with semantic search and context retrieval.
           </p>
-          <p className="text-lg text-slate-400 mb-8">
+          <p className="text-lg text-slate-400 mb-4">
             MemVault is a vector database API that lets your AI agents remember conversations, user preferences, and important context across sessions. Built with PostgreSQL + pgvector for production-grade performance.
           </p>
+          <div className="flex items-center justify-center gap-4 mb-6">
+            <code className="text-sm text-slate-300 bg-slate-800 px-4 py-2 rounded">
+              npm install @memvault/client
+            </code>
+          </div>
           <div className="flex items-center justify-center gap-4">
             <Link href="/pricing">
               <Button size="lg" className="text-lg px-8 py-6">

@@ -17,32 +17,26 @@ const docsSections: DocSection[] = [
     title: 'Getting Started',
     items: [
       { title: 'Introduction', href: '/docs' },
-      { title: 'Quickstart', href: '/docs/quickstart' },
+      { title: 'SDK Quick Start', href: '/docs/sdk' },
       { title: 'Authentication', href: '/docs/authentication' },
+    ],
+  },
+  {
+    title: 'Integration',
+    items: [
+      { title: 'GitHub Actions', href: '/docs/quickstart' },
     ],
   },
   {
     title: 'Core Concepts',
     items: [
       { title: 'How it Works', href: '/docs/architecture' },
-      { title: 'GraphRAG', href: '/docs/advanced/graphrag' },
-      { title: 'Best Practices', href: '/docs/advanced/best-practices' },
-    ],
-  },
-  {
-    title: 'API Reference',
-    items: [
-      { title: 'Store Memory', href: '/docs/api/store-memory' },
-      { title: 'Retrieve Memory', href: '/docs/api/retrieve-memory' },
-      { title: 'Search Memory', href: '/docs/api/search-memory' },
     ],
   },
   {
     title: 'GitHub Action',
     items: [
       { title: 'Installation', href: '/docs/github-action/installation' },
-      { title: 'Configuration', href: '/docs/github-action/configuration' },
-      { title: 'Examples', href: '/docs/github-action/examples' },
     ],
   },
 ]

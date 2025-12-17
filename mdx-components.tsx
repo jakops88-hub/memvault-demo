@@ -42,7 +42,7 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
       
       if (isInline) {
         return (
-          <code className="bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 px-1.5 py-0.5 rounded text-sm font-mono">
+          <code className="bg-slate-800 dark:bg-slate-800 text-slate-100 dark:text-slate-100 px-1.5 py-0.5 rounded text-sm font-mono">
             {children}
           </code>
         )

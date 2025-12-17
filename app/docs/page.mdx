@@ -51,7 +51,32 @@ MemVault works with any LLM or AI framework:
 - **Open-source models** (Llama, Mistral, etc.)
 - **Custom AI systems** built with LangChain, LlamaIndex, or from scratch
 
-It's a simple REST API—no vendor lock-in, no complex SDKs. If your system can make HTTP requests, it can use MemVault.
+Use our official **TypeScript/JavaScript SDK** or call the REST API directly from any language.
+
+### Official SDK Available
+
+Get started faster with our official SDK:
+
+```bash
+npm install @memvault/client
+```
+
+**NPM Package:** [@memvault/client](https://www.npmjs.com/package/@memvault/client)
+
+```typescript
+import { MemVault } from '@memvault/client';
+
+const memvault = new MemVault(process.env.MEMVAULT_API_KEY);
+
+// Store a memory
+await memvault.addMemory("Meeting was about Q4 budget");
+
+// Search memories
+const results = await memvault.retrieve("budget decisions");
+console.log(results.memories);
+```
+
+Learn more in the [SDK Quick Start Guide](/docs/sdk).
 
 ## Architecture Overview
 
@@ -105,10 +130,10 @@ Store deployment history, test results, and incident reports to help your CI/CD 
 
 Ready to give your AI long-term memory? Here's what to do next:
 
-1. **[Quick Start Guide](/docs/quickstart)** - Get up and running in 5 minutes
+1. **[SDK Quick Start](/docs/sdk)** - Install the official SDK and get running in 5 minutes
 2. **[Authentication](/docs/authentication)** - Learn how to secure your API requests
-3. **[Architecture Deep Dive](/docs/architecture)** - Understand how Sleep Cycles work
-4. **[API Reference](/docs/api/store-memory)** - Complete API documentation
+3. **[GitHub Actions Integration](/docs/quickstart)** - Automate memory storage in CI/CD
+4. **[Architecture Deep Dive](/docs/architecture)** - Understand how Sleep Cycles work
 
 ## Pricing & Plans
 
@@ -122,4 +147,4 @@ All plans include unlimited API keys, GraphRAG retrieval, and PostgreSQL + pgvec
 
 ---
 
-**Questions?** Check out our [API Reference](/docs/api/store-memory) or contact support at support@memvault.com.
+**Questions?** Check out our [SDK Documentation](/docs/sdk) or contact support at support@memvault.com.
