@@ -5,7 +5,8 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { CheckCircle, Brain, Loader2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { CheckCircle, Brain, Loader2, ShieldCheck } from "lucide-react";
 
 export default function PricingPage() {
   const [hobbyEmail, setHobbyEmail] = useState("");
@@ -77,8 +78,14 @@ export default function PricingPage() {
             {/* Hobby Plan */}
             <Card>
               <CardHeader>
-                <CardTitle>Hobby</CardTitle>
-                <div className="text-3xl font-bold">$29<span className="text-sm text-muted-foreground">/month</span></div>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Hobby</CardTitle>
+                  <Badge className="bg-green-500 hover:bg-green-600 text-white">
+                    <ShieldCheck className="mr-1 h-3 w-3" />
+                    7-Day Free Trial
+                  </Badge>
+                </div>
+                <div className="text-3xl font-bold">$29<span className="text-sm text-muted-foreground">/month after trial</span></div>
                 <p className="text-sm text-muted-foreground">Perfect for side projects</p>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -94,6 +101,10 @@ export default function PricingPage() {
                   <li className="flex items-center gap-2">
                     <CheckCircle className="h-4 w-4 text-green-500" />
                     GraphRAG support
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4 text-green-500" />
+                    Try risk-free for 7 days
                   </li>
                 </ul>
                 <div className="space-y-2">
@@ -114,9 +125,12 @@ export default function PricingPage() {
                         Loading...
                       </>
                     ) : (
-                      "Get Started"
+                      "Start Free Trial"
                     )}
                   </Button>
+                  <p className="text-xs text-muted-foreground text-center">
+                    Cancel anytime. No charge until day 7.
+                  </p>
                 </div>
               </CardContent>
             </Card>

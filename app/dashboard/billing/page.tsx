@@ -166,7 +166,7 @@ export default function BillingPage() {
               <p className="text-sm text-muted-foreground">
                 {currentPlan.name === "PRO" 
                   ? "Update payment method, view invoices, or cancel subscription."
-                  : "Upgrade your plan to get higher limits and additional features."}
+                  : "Upgrade to Pro with higher limits, priority support, and advanced analytics."}
               </p>
               {currentPlan.name === "PRO" ? (
                 <ManageSubscriptionButton
@@ -177,7 +177,7 @@ export default function BillingPage() {
                 <UpgradeButton
                   currentTier={currentPlan.name}
                   priceId={process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID || "price_1ABC..."}
-                  label="Upgrade to Pro - $99/mo"
+                  label="Upgrade to Pro"
                   variant="default"
                 />
               )}
