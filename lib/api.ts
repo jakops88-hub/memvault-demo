@@ -1,4 +1,5 @@
 // API service for backend communication
+import type { MemorySearchRequest, MemorySearchResponse } from '@/types/memvault';
 
 // Ensure we have a valid backend URL without trailing slash
 const API_BASE_URL = (() => {
@@ -125,6 +126,29 @@ export const memoryApi = {
       body: JSON.stringify({ sessionId: userId, query, limit }),
     });
     if (!response.ok) throw new Error('Failed to search memories');
+    return response.json();
+  },
+
+  /**
+   * MemVault Recall - Advanced search with budget control
+   * @param request - Search request with query, budget, and optional bank_id
+   */
+  async recall(request: MemorySearchRequest): Promise<MemorySearchResponse> {
+    const response = await fetch(`${API_BASE_URL}/api/memvault/recall`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({
+        query: request.query,
+        budget: request.budget,
+        bank_id: request.bank_id,
+        limit: request.limit || 10,
+      }),
+    });
+    
+    if (!response.ok) {
+      throw new Error(`MemVault recall failed: ${response.statusText}`);
+    }
+    
     return response.json();
   },
 };
