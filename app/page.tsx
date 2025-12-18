@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Brain, Zap, Shield, CheckCircle, Sparkles, ArrowRight, Play } from "lucide-react";
 import { MemoryCard } from "@/components/MemoryCard";
