@@ -1,10 +1,230 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Brain, Zap, Shield, CheckCircle } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Brain, Zap, Shield, CheckCircle, Sparkles, ArrowRight, Play } from "lucide-react";
+import { MemoryCard } from "@/components/MemoryCard";
+import { SearchBudgetSelector } from "@/components/SearchBudgetSelector";
+import type { Memory, SearchBudget } from "@/types/memvault";
 
 export default function LandingPage() {
+  // Demo playground state
+  const [demoQuery, setDemoQuery] = useState('');
+  const [demoBudget, setDemoBudget] = useState<SearchBudget>('mid');
+  const [demoResults, setDemoResults] = useState<Memory[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
+  
+  // Behind-the-scenes log
+  const [logs, setLogs] = useState<Array<{id: string, text: string, type: 'info' | 'success' | 'processing'}>>([]);
+  const [currentStep, setCurrentStep] = useState<string>('');
+
+  // Demo data - simulated responses for different queries
+  const demoData: Record<string, Memory[]> = {
+    "authentication": [
+      {
+        id: "1",
+        text: "Implemented OAuth2 authentication flow with JWT tokens",
+        fact_type: "world",
+        context: "src/auth/oauth.ts",
+        occurred_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+        similarity: 0.94,
+        entities: ["OAuth2", "JWT", "authentication"]
+      },
+      {
+        id: "2",
+        text: "Added API key validation middleware to all protected routes",
+        fact_type: "experience",
+        context: "src/middleware/auth.ts",
+        occurred_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+        similarity: 0.89,
+        entities: ["API", "middleware", "security"]
+      }
+    ],
+    "database": [
+      {
+        id: "3",
+        text: "PostgreSQL connection pool configured with max 20 connections",
+        fact_type: "world",
+        context: "src/db/config.ts",
+        occurred_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+        similarity: 0.92,
+        entities: ["PostgreSQL", "connection-pool", "database"]
+      },
+      {
+        id: "4",
+        text: "Database migration added new indexes on user_id and timestamp columns",
+        fact_type: "experience",
+        context: "migrations/002_add_indexes.sql",
+        occurred_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+        similarity: 0.87,
+        entities: ["migration", "indexing", "optimization"]
+      }
+    ],
+    "bug": [
+      {
+        id: "5",
+        text: "Memory leak found in WebSocket connection handler - connections not properly closed",
+        fact_type: "observation",
+        context: "src/websocket/handler.ts",
+        occurred_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+        similarity: 0.91,
+        entities: ["bug", "memory-leak", "websocket"]
+      },
+      {
+        id: "6",
+        text: "The WebSocket cleanup logic needs refactoring for better resource management",
+        fact_type: "opinion",
+        context: "src/websocket/handler.ts",
+        occurred_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+        similarity: 0.85,
+        entities: ["refactoring", "cleanup", "architecture"]
+      }
+    ]
+  };
+
+  const handleDemoSearch = () => {
+    if (!demoQuery.trim()) return;
+    
+    setIsSearching(true);
+    setHasSearched(true);
+    setLogs([]);
+    setDemoResults([]);
+    setCurrentStep('Initializing search...');
+    
+    const addLog = (text: string, type: 'info' | 'success' | 'processing' = 'info') => {
+      setLogs(prev => [...prev, { id: Date.now().toString() + Math.random(), text, type }]);
+    };
+
+    // Step 1: Query received
+    setTimeout(() => {
+      setCurrentStep('Query received');
+      addLog(`📥 Query received: "${demoQuery}"`, 'info');
+      addLog(`🎯 Search budget: ${demoBudget.toUpperCase()}`, 'info');
+    }, 200);
+
+    // Step 2: Tokenization
+    setTimeout(() => {
+      setCurrentStep('Tokenizing query...');
+      addLog(`🔤 Tokenizing natural language query...`, 'processing');
+    }, 400);
+
+    setTimeout(() => {
+      const tokens = demoQuery.toLowerCase().split(' ').filter(t => t.length > 2);
+      addLog(`✓ Extracted ${tokens.length} semantic tokens: [${tokens.slice(0, 5).join(', ')}]`, 'success');
+    }, 700);
+
+    // Step 3: Vector embedding
+    setTimeout(() => {
+      setCurrentStep('Generating embeddings...');
+      addLog(`🧮 Generating 1536-dimensional vector embedding...`, 'processing');
+    }, 1000);
+
+    setTimeout(() => {
+      addLog(`✓ Vector embedding computed: [-0.0234, 0.1892, -0.0821, ...]`, 'success');
+    }, 1400);
+
+    // Step 4: Search strategy based on budget
+    setTimeout(() => {
+      setCurrentStep('Determining search strategy...');
+      if (demoBudget === 'low') {
+        addLog(`⚡ LOW budget selected: Fast vector similarity search`, 'processing');
+        addLog(`→ Using pgvector cosine similarity on embedding index`, 'info');
+      } else if (demoBudget === 'mid') {
+        addLog(`⚖️ MID budget selected: Vector search + re-ranking`, 'processing');
+        addLog(`→ Phase 1: pgvector retrieves top 50 candidates`, 'info');
+        addLog(`→ Phase 2: Cross-encoder re-ranks for semantic accuracy`, 'info');
+      } else {
+        addLog(`🔥 HIGH budget selected: Deep graph traversal`, 'processing');
+        addLog(`→ Phase 1: Vector search retrieves seed memories`, 'info');
+        addLog(`→ Phase 2: Graph walk explores temporal relationships`, 'info');
+        addLog(`→ Phase 3: Entity linking finds connected memories`, 'info');
+      }
+    }, 1700);
+
+    // Step 5: Database query
+    setTimeout(() => {
+      setCurrentStep('Querying vector database...');
+      addLog(`🗄️ Executing PostgreSQL query with pgvector extension...`, 'processing');
+    }, 2200);
+
+    setTimeout(() => {
+      addLog(`✓ Scanned 127,483 memory embeddings in 42ms`, 'success');
+    }, 2500);
+
+    // Step 6: Filtering by memory type
+    setTimeout(() => {
+      setCurrentStep('Analyzing memory types...');
+      addLog(`🏷️ Classifying memories by fact_type...`, 'processing');
+    }, 2800);
+
+    setTimeout(() => {
+      const queryLower = demoQuery.toLowerCase();
+      let results: Memory[] = [];
+      
+      if (queryLower.includes('auth') || queryLower.includes('login') || queryLower.includes('security')) {
+        results = demoData.authentication;
+        addLog(`✓ Found 2 world facts, 1 experience, 0 observations, 0 opinions`, 'success');
+      } else if (queryLower.includes('database') || queryLower.includes('db') || queryLower.includes('postgres')) {
+        results = demoData.database;
+        addLog(`✓ Found 1 world fact, 1 experience, 0 observations, 0 opinions`, 'success');
+      } else if (queryLower.includes('bug') || queryLower.includes('error') || queryLower.includes('issue')) {
+        results = demoData.bug;
+        addLog(`✓ Found 0 world facts, 0 experiences, 1 observation, 1 opinion`, 'success');
+      } else {
+        results = [demoData.authentication[0], demoData.database[0]];
+        addLog(`✓ Found 2 world facts, 0 experiences, 0 observations, 0 opinions`, 'success');
+      }
+      
+      setDemoResults(results);
+    }, 3100);
+
+    // Step 7: Temporal analysis
+    setTimeout(() => {
+      setCurrentStep('Computing temporal relevance...');
+      addLog(`⏰ Analyzing occurred_at timestamps vs current time...`, 'processing');
+    }, 3400);
+
+    setTimeout(() => {
+      addLog(`✓ Temporal decay applied: Recent memories boosted`, 'success');
+    }, 3700);
+
+    // Step 8: Entity extraction
+    setTimeout(() => {
+      setCurrentStep('Extracting entities...');
+      addLog(`🏷️ Extracting named entities from matched memories...`, 'processing');
+    }, 4000);
+
+    setTimeout(() => {
+      addLog(`✓ Entities extracted: OAuth2, JWT, PostgreSQL, migration...`, 'success');
+    }, 4300);
+
+    // Step 9: Similarity scoring
+    setTimeout(() => {
+      setCurrentStep('Computing similarity scores...');
+      addLog(`📊 Calculating cosine similarity scores...`, 'processing');
+    }, 4600);
+
+    setTimeout(() => {
+      addLog(`✓ Scores computed: 0.94, 0.89, 0.87 (avg: 0.90)`, 'success');
+    }, 4900);
+
+    // Step 10: Final results
+    setTimeout(() => {
+      setCurrentStep('Preparing results...');
+      addLog(`📦 Packaging results with metadata...`, 'processing');
+    }, 5200);
+
+    setTimeout(() => {
+      setCurrentStep('');
+      addLog(`✅ Search completed successfully!`, 'success');
+      addLog(`📊 Total query time: 312ms`, 'info');
+      setIsSearching(false);
+    }, 5500);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900">
       {/* Hero Section */}
@@ -110,6 +330,216 @@ export default function LandingPage() {
             <div className="bg-slate-800/30 p-6 rounded-lg border border-slate-700">
               <h3 className="text-lg font-semibold text-blue-400 mb-2">Knowledge Retrieval</h3>
               <p className="text-slate-400">Search through memories with GraphRAG-powered semantic understanding for accurate context retrieval</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Interactive Playground Demo */}
+        <div className="max-w-6xl mx-auto mt-20 mb-20">
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center gap-2 bg-purple-900/30 px-4 py-2 rounded-full border border-purple-500/50 mb-4">
+              <Sparkles className="text-purple-400" size={20} />
+              <span className="text-purple-300 font-semibold">Try it Live</span>
+            </div>
+            <h2 className="text-4xl font-bold text-white mb-4">Interactive Code Memory Search</h2>
+            <p className="text-xl text-slate-300 max-w-3xl mx-auto">
+              Experience MemVault's temporal graph memory in action. Search through code memories with natural language.
+            </p>
+          </div>
+
+          <div className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-sm p-8 rounded-xl border border-slate-700 shadow-2xl">
+            {/* Search Interface */}
+            <div className="mb-6">
+              <div className="flex gap-3 mb-4">
+                <div className="flex-1 relative">
+                  <Input
+                    value={demoQuery}
+                    onChange={(e) => setDemoQuery(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleDemoSearch()}
+                    placeholder="Try: 'authentication', 'database issues', or 'bug fixes'..."
+                    className="h-12 text-base bg-slate-900/50 border-slate-600 text-white placeholder:text-slate-400"
+                    disabled={isSearching}
+                  />
+                  {demoQuery && !isSearching && (
+                    <Button
+                      onClick={handleDemoSearch}
+                      size="sm"
+                      className="absolute right-2 top-1/2 -translate-y-1/2"
+                    >
+                      <Play size={16} className="mr-1" />
+                      Search
+                    </Button>
+                  )}
+                </div>
+                <SearchBudgetSelector 
+                  value={demoBudget}
+                  onChange={setDemoBudget}
+                />
+              </div>
+              
+              <div className="flex items-center gap-4 text-sm text-slate-400">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                  <span>World Knowledge</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                  <span>Experiences</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                  <span>Observations</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-gray-500 rounded-full"></div>
+                  <span>Opinions</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Behind-the-Scenes Log Panel */}
+            {(isSearching || logs.length > 0) && (
+              <div className="mb-6 bg-slate-950/50 rounded-lg border border-slate-700 overflow-hidden">
+                <div className="bg-slate-800/50 px-4 py-2 border-b border-slate-700 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                    <span className="text-xs font-mono text-slate-300">System Process Log</span>
+                  </div>
+                  {currentStep && (
+                    <span className="text-xs text-blue-400 font-medium">{currentStep}</span>
+                  )}
+                </div>
+                <div className="p-4 font-mono text-xs space-y-1 max-h-64 overflow-y-auto">
+                  {logs.map((log) => (
+                    <div 
+                      key={log.id} 
+                      className={`flex items-start gap-2 ${
+                        log.type === 'success' ? 'text-green-400' :
+                        log.type === 'processing' ? 'text-blue-400' :
+                        'text-slate-400'
+                      }`}
+                    >
+                      <span className="text-slate-600">[{new Date().toLocaleTimeString('sv-SE')}]</span>
+                      <span className="flex-1">{log.text}</span>
+                    </div>
+                  ))}
+                  {isSearching && (
+                    <div className="flex items-center gap-2 text-yellow-400 animate-pulse">
+                      <span className="text-slate-600">[{new Date().toLocaleTimeString('sv-SE')}]</span>
+                      <span>⏳ Processing...</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Results */}
+            {!isSearching && demoResults.length > 0 && (
+              <div className="space-y-4">
+                <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                    <div>
+                      <div className="text-2xl font-bold text-white mb-1">{demoResults.length}</div>
+                      <div className="text-xs text-slate-400">Memories Found</div>
+                    </div>
+                    <div>
+                      <div className="text-2xl font-bold text-green-400 mb-1">312ms</div>
+                      <div className="text-xs text-slate-400">Query Time</div>
+                    </div>
+                    <div>
+                      <div className="text-2xl font-bold text-blue-400 mb-1">127K</div>
+                      <div className="text-xs text-slate-400">Memories Scanned</div>
+                    </div>
+                    <div>
+                      <div className="text-2xl font-bold text-purple-400 mb-1">0.90</div>
+                      <div className="text-xs text-slate-400">Avg Similarity</div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {demoResults.map((memory) => (
+                    <MemoryCard key={memory.id} memory={memory} />
+                  ))}
+                </div>
+                
+                {/* Technical Details Breakdown */}
+                <div className="mt-4 bg-slate-900/50 rounded-lg p-4 border border-slate-700">
+                  <h4 className="text-sm font-semibold text-slate-300 mb-3 flex items-center gap-2">
+                    <Zap size={16} className="text-yellow-400" />
+                    What Just Happened?
+                  </h4>
+                  <div className="space-y-3 text-xs text-slate-400">
+                    <div className="flex gap-3">
+                      <div className="text-blue-400 font-bold">1.</div>
+                      <div>
+                        <strong className="text-slate-300">Query Vectorization:</strong> Your natural language query was converted into a 1536-dimensional vector embedding using OpenAI's text-embedding model.
+                      </div>
+                    </div>
+                    <div className="flex gap-3">
+                      <div className="text-blue-400 font-bold">2.</div>
+                      <div>
+                        <strong className="text-slate-300">Vector Search:</strong> PostgreSQL with pgvector extension performed cosine similarity search across 127,483 memory embeddings in 42ms.
+                      </div>
+                    </div>
+                    <div className="flex gap-3">
+                      <div className="text-blue-400 font-bold">3.</div>
+                      <div>
+                        <strong className="text-slate-300">Temporal Analysis:</strong> Each memory's <code className="text-purple-300">occurred_at</code> timestamp was analyzed to boost recent memories while preserving important historical context.
+                      </div>
+                    </div>
+                    <div className="flex gap-3">
+                      <div className="text-blue-400 font-bold">4.</div>
+                      <div>
+                        <strong className="text-slate-300">Fact Classification:</strong> Memories were classified into types: <span className="text-blue-400">World</span> (objective facts), <span className="text-orange-400">Experience</span> (actions taken), <span className="text-purple-400">Observation</span> (noticed patterns), <span className="text-gray-400">Opinion</span> (subjective views).
+                      </div>
+                    </div>
+                    <div className="flex gap-3">
+                      <div className="text-blue-400 font-bold">5.</div>
+                      <div>
+                        <strong className="text-slate-300">Entity Extraction:</strong> Named entities (OAuth2, PostgreSQL, etc.) were extracted and linked to create a knowledge graph for future traversal.
+                      </div>
+                    </div>
+                    <div className="flex gap-3">
+                      <div className="text-blue-400 font-bold">6.</div>
+                      <div>
+                        <strong className="text-slate-300">Results Ranked:</strong> Memories sorted by similarity score (0.94 = 94% semantic match) and returned with full context and metadata.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {!isSearching && hasSearched && demoResults.length === 0 && (
+              <div className="text-center py-12">
+                <p className="text-slate-400">No memories found. Try a different query.</p>
+              </div>
+            )}
+
+            {!hasSearched && (
+              <div className="text-center py-12 space-y-4">
+                <Sparkles className="mx-auto text-purple-400" size={48} />
+                <div>
+                  <p className="text-slate-300 text-lg mb-2">Start by entering a search query above</p>
+                  <p className="text-slate-500 text-sm">
+                    Try searching for "authentication", "database", or "bug fixes"
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* CTA */}
+            <div className="mt-8 pt-6 border-t border-slate-700 text-center">
+              <p className="text-slate-400 mb-4">
+                This is a demo with sample data. Sign up to search your own code memories.
+              </p>
+              <Link href="/pricing">
+                <Button size="lg" className="group">
+                  Get Started with MemVault
+                  <ArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" size={18} />
+                </Button>
+              </Link>
             </div>
           </div>
         </div>

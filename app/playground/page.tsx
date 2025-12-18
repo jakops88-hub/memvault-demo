@@ -10,7 +10,8 @@ import {
   Activity,
   Clock,
   TrendingUp,
-  Search
+  Search,
+  Sparkles
 } from 'lucide-react';
 import Link from 'next/link';
 import { NeuralGraph } from '../../components/NeuralGraph';
@@ -18,6 +19,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { MemoryCard } from '@/components/MemoryCard';
+import { SearchBudgetSelector } from '@/components/SearchBudgetSelector';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { memoryApi } from '@/lib/api';
+import type { Memory, SearchBudget } from '@/types/memvault';
 
 interface Message {
   id: string;
@@ -72,6 +78,14 @@ export default function PlaygroundPage() {
   // Generate unique session ID for this playground session
   const [agentId] = useState(`playground-${Date.now()}`);
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // MemVault Search State
+  const [memvaultQuery, setMemvaultQuery] = useState('');
+  const [memvaultResults, setMemvaultResults] = useState<Memory[]>([]);
+  const [memvaultBudget, setMemvaultBudget] = useState<SearchBudget>('mid');
+  const [isMemvaultSearching, setIsMemvaultSearching] = useState(false);
+  const [memvaultError, setMemvaultError] = useState<string | null>(null);
+  const [memvaultQueryTime, setMemvaultQueryTime] = useState<number | null>(null);
 
   const [input, setInput] = useState('');
   const [lastQuery, setLastQuery] = useState<string | null>(null);
@@ -345,6 +359,38 @@ export default function PlaygroundPage() {
     }
   };
 
+  const handleMemvaultSearch = async () => {
+    if (!memvaultQuery.trim()) return;
+    
+    setIsMemvaultSearching(true);
+    setMemvaultError(null);
+    setMemvaultResults([]);
+    
+    const startTime = performance.now();
+    addLog(`MemVault search: "${memvaultQuery.substring(0, 30)}..." [Budget: ${memvaultBudget}]`, 'info');
+    
+    try {
+      const response = await memoryApi.recall({
+        query: memvaultQuery,
+        budget: memvaultBudget,
+        bank_id: 'default',
+        limit: 10
+      });
+      
+      const queryTime = performance.now() - startTime;
+      setMemvaultQueryTime(queryTime);
+      setMemvaultResults(response.memories);
+      
+      addLog(`Found ${response.memories.length} MemVault memories`, 'success', `${queryTime.toFixed(0)}ms`);
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      setMemvaultError(errorMsg);
+      addLog(`❌ MemVault search failed: ${errorMsg}`, 'error');
+    } finally {
+      setIsMemvaultSearching(false);
+    }
+  };
+
   return (
     <div className="flex h-screen bg-white text-slate-800 font-sans overflow-hidden">
       {/* Left Sidebar - Memory List */}
@@ -466,8 +512,67 @@ export default function PlaygroundPage() {
         </div>
 
         {/* Graph Visualization */}
-        <div className="flex-1 relative bg-white overflow-hidden">
-          <NeuralGraph data={graphData} />
+        <div className="flex-1 relative bg-white overflow-auto">
+          <div className="h-[400px]">
+            <NeuralGraph data={graphData} />
+          </div>
+          
+          {/* MemVault Search Section */}
+          <div className="p-6 border-t border-slate-200">
+            <div className="max-w-5xl mx-auto">
+              <div className="flex items-center gap-2 mb-4">
+                <Sparkles className="text-purple-600" size={24} />
+                <h2 className="text-xl font-bold text-slate-900">MemVault Search</h2>
+                <Badge variant="secondary" className="text-xs">New Backend</Badge>
+              </div>
+              
+              <div className="flex gap-2 mb-4">
+                <Input
+                  value={memvaultQuery}
+                  onChange={(e) => setMemvaultQuery(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleMemvaultSearch()}
+                  placeholder="Search temporal graph memory..."
+                  className="flex-1"
+                  disabled={isMemvaultSearching}
+                />
+                <SearchBudgetSelector 
+                  value={memvaultBudget}
+                  onChange={setMemvaultBudget}
+                />
+                <Button 
+                  onClick={handleMemvaultSearch}
+                  disabled={isMemvaultSearching || !memvaultQuery.trim()}
+                  className="px-6"
+                >
+                  {isMemvaultSearching ? 'Searching...' : 'Search'}
+                </Button>
+              </div>
+              
+              {memvaultError && (
+                <Alert variant="destructive" className="mb-4">
+                  <AlertDescription>{memvaultError}</AlertDescription>
+                </Alert>
+              )}
+              
+              {memvaultQueryTime !== null && (
+                <p className="text-sm text-slate-600 mb-4">
+                  Found {memvaultResults.length} memories in {memvaultQueryTime.toFixed(0)}ms
+                </p>
+              )}
+              
+              {memvaultResults.length > 0 && (
+                <div className="grid grid-cols-2 gap-4">
+                  {memvaultResults.map((memory) => (
+                    <MemoryCard key={memory.id} memory={memory} />
+                  ))}
+                </div>
+              )}
+              
+              {!isMemvaultSearching && memvaultQuery && memvaultResults.length === 0 && !memvaultError && (
+                <p className="text-center text-slate-500 py-8">No memories found. Try a different query.</p>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Input Area */}
