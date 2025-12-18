@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +20,38 @@ export default function LandingPage() {
   // Behind-the-scenes log
   const [logs, setLogs] = useState<Array<{id: string, text: string, type: 'info' | 'success' | 'processing'}>>([]);
   const [currentStep, setCurrentStep] = useState<string>('');
+  
+  // Visitor counter
+  const [visitorCount, setVisitorCount] = useState<number>(0);
+  const [isNewVisitor, setIsNewVisitor] = useState<boolean>(false);
+
+  // Track unique visitors
+  useEffect(() => {
+    const VISITOR_KEY = 'memvault_visitor_id';
+    const COUNT_KEY = 'memvault_visitor_count';
+    
+    // Check if visitor has been here before
+    const existingVisitorId = localStorage.getItem(VISITOR_KEY);
+    
+    if (!existingVisitorId) {
+      // New visitor - generate unique ID
+      const newVisitorId = `visitor_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      localStorage.setItem(VISITOR_KEY, newVisitorId);
+      
+      // Increment counter
+      const currentCount = parseInt(localStorage.getItem(COUNT_KEY) || '0', 10);
+      const newCount = currentCount + 1;
+      localStorage.setItem(COUNT_KEY, newCount.toString());
+      
+      setVisitorCount(newCount);
+      setIsNewVisitor(true);
+    } else {
+      // Returning visitor
+      const currentCount = parseInt(localStorage.getItem(COUNT_KEY) || '0', 10);
+      setVisitorCount(currentCount);
+      setIsNewVisitor(false);
+    }
+  }, []);
 
   // Demo data - simulated responses for different queries
   const demoData: Record<string, Memory[]> = {
@@ -593,6 +625,24 @@ export default function LandingPage() {
             <p className="text-slate-400">
               RESTful API with comprehensive documentation
             </p>
+          </div>
+        </div>
+        
+        {/* Visitor Counter Footer */}
+        <div className="mt-20 pb-8 text-center">
+          <div className="inline-flex items-center gap-3 bg-slate-800/50 px-6 py-3 rounded-lg border border-slate-700">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              <span className="text-sm text-slate-400">
+                {isNewVisitor ? 'Welcome! You are visitor' : 'Unique visitors'}
+              </span>
+            </div>
+            <div className="text-2xl font-bold text-blue-400">
+              #{visitorCount.toString().padStart(4, '0')}
+            </div>
+            {isNewVisitor && (
+              <Badge variant="secondary" className="text-xs">New</Badge>
+            )}
           </div>
         </div>
       </div>
