@@ -101,128 +101,155 @@ export default function LandingPage() {
     // Step 1: Query received
     setTimeout(() => {
       setCurrentStep('Query received');
-      addLog(`📥 Query received: "${demoQuery}"`, 'info');
-      addLog(`🎯 Search budget: ${demoBudget.toUpperCase()}`, 'info');
+      addLog(`[QUERY] Received: "${demoQuery}"`, 'info');
+      addLog(`[CONFIG] Search budget: ${demoBudget.toUpperCase()}`, 'info');
     }, 200);
 
     // Step 2: Tokenization
     setTimeout(() => {
       setCurrentStep('Tokenizing query...');
-      addLog(`🔤 Tokenizing natural language query...`, 'processing');
+      addLog(`[NLP] Tokenizing natural language query...`, 'processing');
     }, 400);
 
     setTimeout(() => {
       const tokens = demoQuery.toLowerCase().split(' ').filter(t => t.length > 2);
-      addLog(`✓ Extracted ${tokens.length} semantic tokens: [${tokens.slice(0, 5).join(', ')}]`, 'success');
+      addLog(`[NLP] Extracted ${tokens.length} tokens: [${tokens.slice(0, 5).join(', ')}${tokens.length > 5 ? ', ...' : ''}]`, 'success');
     }, 700);
 
     // Step 3: Vector embedding
     setTimeout(() => {
       setCurrentStep('Generating embeddings...');
-      addLog(`🧮 Generating 1536-dimensional vector embedding...`, 'processing');
+      addLog(`[VECTOR] Generating 1536-dimensional embedding...`, 'processing');
     }, 1000);
 
     setTimeout(() => {
-      addLog(`✓ Vector embedding computed: [-0.0234, 0.1892, -0.0821, ...]`, 'success');
+      addLog(`[VECTOR] Embedding computed: [-0.0234, 0.1892, -0.0821, ...]`, 'success');
     }, 1400);
 
     // Step 4: Search strategy based on budget
     setTimeout(() => {
       setCurrentStep('Determining search strategy...');
       if (demoBudget === 'low') {
-        addLog(`⚡ LOW budget selected: Fast vector similarity search`, 'processing');
-        addLog(`→ Using pgvector cosine similarity on embedding index`, 'info');
+        addLog(`[STRATEGY] LOW budget: Fast vector similarity search`, 'processing');
+        addLog(`[STRATEGY] Using pgvector cosine similarity on embedding index`, 'info');
       } else if (demoBudget === 'mid') {
-        addLog(`⚖️ MID budget selected: Vector search + re-ranking`, 'processing');
-        addLog(`→ Phase 1: pgvector retrieves top 50 candidates`, 'info');
-        addLog(`→ Phase 2: Cross-encoder re-ranks for semantic accuracy`, 'info');
+        addLog(`[STRATEGY] MID budget: Vector search + re-ranking`, 'processing');
+        addLog(`[STRATEGY] Phase 1: pgvector retrieves top 50 candidates`, 'info');
+        addLog(`[STRATEGY] Phase 2: Cross-encoder re-ranks by semantic accuracy`, 'info');
       } else {
-        addLog(`🔥 HIGH budget selected: Deep graph traversal`, 'processing');
-        addLog(`→ Phase 1: Vector search retrieves seed memories`, 'info');
-        addLog(`→ Phase 2: Graph walk explores temporal relationships`, 'info');
-        addLog(`→ Phase 3: Entity linking finds connected memories`, 'info');
+        addLog(`[STRATEGY] HIGH budget: Deep graph traversal`, 'processing');
+        addLog(`[STRATEGY] Phase 1: Vector search retrieves seed memories`, 'info');
+        addLog(`[STRATEGY] Phase 2: Graph walk explores temporal relationships`, 'info');
+        addLog(`[STRATEGY] Phase 3: Entity linking finds connected memories`, 'info');
       }
     }, 1700);
 
     // Step 5: Database query
     setTimeout(() => {
       setCurrentStep('Querying vector database...');
-      addLog(`🗄️ Executing PostgreSQL query with pgvector extension...`, 'processing');
+      addLog(`[DATABASE] Executing PostgreSQL query with pgvector extension...`, 'processing');
     }, 2200);
 
     setTimeout(() => {
-      addLog(`✓ Scanned 127,483 memory embeddings in 42ms`, 'success');
+      addLog(`[DATABASE] Scanned 127,483 memory embeddings in 42ms`, 'success');
     }, 2500);
 
-    // Step 6: Filtering by memory type
+    // Step 6: Determine results
     setTimeout(() => {
-      setCurrentStep('Analyzing memory types...');
-      addLog(`🏷️ Classifying memories by fact_type...`, 'processing');
-    }, 2800);
-
-    setTimeout(() => {
+      setCurrentStep('Processing results...');
       const queryLower = demoQuery.toLowerCase();
       let results: Memory[] = [];
       
       if (queryLower.includes('auth') || queryLower.includes('login') || queryLower.includes('security')) {
         results = demoData.authentication;
-        addLog(`✓ Found 2 world facts, 1 experience, 0 observations, 0 opinions`, 'success');
+        addLog(`[FILTER] Classifying memories by fact_type...`, 'processing');
       } else if (queryLower.includes('database') || queryLower.includes('db') || queryLower.includes('postgres')) {
         results = demoData.database;
-        addLog(`✓ Found 1 world fact, 1 experience, 0 observations, 0 opinions`, 'success');
+        addLog(`[FILTER] Classifying memories by fact_type...`, 'processing');
       } else if (queryLower.includes('bug') || queryLower.includes('error') || queryLower.includes('issue')) {
         results = demoData.bug;
-        addLog(`✓ Found 0 world facts, 0 experiences, 1 observation, 1 opinion`, 'success');
+        addLog(`[FILTER] Classifying memories by fact_type...`, 'processing');
       } else {
         results = [demoData.authentication[0], demoData.database[0]];
-        addLog(`✓ Found 2 world facts, 0 experiences, 0 observations, 0 opinions`, 'success');
+        addLog(`[FILTER] Classifying memories by fact_type...`, 'processing');
       }
       
       setDemoResults(results);
+    }, 2800);
+
+    // Step 7: Show actual found memories
+    setTimeout(() => {
+      setCurrentStep('Extracting matched memories...');
+      const queryLower = demoQuery.toLowerCase();
+      let results: Memory[] = [];
+      
+      if (queryLower.includes('auth') || queryLower.includes('login') || queryLower.includes('security')) {
+        results = demoData.authentication;
+      } else if (queryLower.includes('database') || queryLower.includes('db') || queryLower.includes('postgres')) {
+        results = demoData.database;
+      } else if (queryLower.includes('bug') || queryLower.includes('error') || queryLower.includes('issue')) {
+        results = demoData.bug;
+      } else {
+        results = [demoData.authentication[0], demoData.database[0]];
+      }
+
+      addLog(`[RESULTS] Found ${results.length} matching memories:`, 'success');
+      results.forEach((mem, idx) => {
+        addLog(`[MEMORY ${idx + 1}] "${mem.text.substring(0, 60)}..." (similarity: ${mem.similarity})`, 'info');
+      });
     }, 3100);
 
-    // Step 7: Temporal analysis
+    // Step 8: Temporal analysis
     setTimeout(() => {
       setCurrentStep('Computing temporal relevance...');
-      addLog(`⏰ Analyzing occurred_at timestamps vs current time...`, 'processing');
-    }, 3400);
+      addLog(`[TEMPORAL] Analyzing occurred_at timestamps vs current time...`, 'processing');
+    }, 3600);
 
     setTimeout(() => {
-      addLog(`✓ Temporal decay applied: Recent memories boosted`, 'success');
-    }, 3700);
+      addLog(`[TEMPORAL] Recent memories boosted, historical context preserved`, 'success');
+    }, 3900);
 
-    // Step 8: Entity extraction
+    // Step 9: Entity extraction
     setTimeout(() => {
       setCurrentStep('Extracting entities...');
-      addLog(`🏷️ Extracting named entities from matched memories...`, 'processing');
-    }, 4000);
+      addLog(`[ENTITIES] Extracting named entities from matched memories...`, 'processing');
+    }, 4200);
 
     setTimeout(() => {
-      addLog(`✓ Entities extracted: OAuth2, JWT, PostgreSQL, migration...`, 'success');
-    }, 4300);
+      const queryLower = demoQuery.toLowerCase();
+      let entityStr = 'OAuth2, JWT, authentication';
+      
+      if (queryLower.includes('database') || queryLower.includes('db') || queryLower.includes('postgres')) {
+        entityStr = 'PostgreSQL, migration, indexing, connection-pool';
+      } else if (queryLower.includes('bug') || queryLower.includes('error') || queryLower.includes('issue')) {
+        entityStr = 'bug, memory-leak, websocket, refactoring';
+      }
+      
+      addLog(`[ENTITIES] Extracted: ${entityStr}`, 'success');
+    }, 4500);
 
-    // Step 9: Similarity scoring
+    // Step 10: Similarity scoring
     setTimeout(() => {
       setCurrentStep('Computing similarity scores...');
-      addLog(`📊 Calculating cosine similarity scores...`, 'processing');
-    }, 4600);
+      addLog(`[SCORING] Calculating cosine similarity scores...`, 'processing');
+    }, 4800);
 
     setTimeout(() => {
-      addLog(`✓ Scores computed: 0.94, 0.89, 0.87 (avg: 0.90)`, 'success');
-    }, 4900);
+      addLog(`[SCORING] Scores computed: 0.94, 0.89 (avg: 0.92)`, 'success');
+    }, 5100);
 
-    // Step 10: Final results
+    // Step 11: Final results
     setTimeout(() => {
-      setCurrentStep('Preparing results...');
-      addLog(`📦 Packaging results with metadata...`, 'processing');
-    }, 5200);
+      setCurrentStep('Packaging results...');
+      addLog(`[PACKAGE] Preparing final response with metadata...`, 'processing');
+    }, 5400);
 
     setTimeout(() => {
       setCurrentStep('');
-      addLog(`✅ Search completed successfully!`, 'success');
-      addLog(`📊 Total query time: 312ms`, 'info');
+      addLog(`[COMPLETE] Search completed successfully`, 'success');
+      addLog(`[METRICS] Total query time: 312ms`, 'info');
       setIsSearching(false);
-    }, 5500);
+    }, 5700);
   };
 
   return (
@@ -415,7 +442,7 @@ export default function LandingPage() {
                       key={log.id} 
                       className={`flex items-start gap-2 ${
                         log.type === 'success' ? 'text-green-400' :
-                        log.type === 'processing' ? 'text-blue-400' :
+                        log.type === 'processing' ? 'text-yellow-400' :
                         'text-slate-400'
                       }`}
                     >
@@ -424,9 +451,9 @@ export default function LandingPage() {
                     </div>
                   ))}
                   {isSearching && (
-                    <div className="flex items-center gap-2 text-yellow-400 animate-pulse">
+                    <div className="flex items-center gap-2 text-cyan-400 animate-pulse">
                       <span className="text-slate-600">[{new Date().toLocaleTimeString('sv-SE')}]</span>
-                      <span>⏳ Processing...</span>
+                      <span>[SYSTEM] Processing...</span>
                     </div>
                   )}
                 </div>
@@ -467,41 +494,41 @@ export default function LandingPage() {
                 <div className="mt-4 bg-slate-900/50 rounded-lg p-4 border border-slate-700">
                   <h4 className="text-sm font-semibold text-slate-300 mb-3 flex items-center gap-2">
                     <Zap size={16} className="text-yellow-400" />
-                    What Just Happened?
+                    Technical Breakdown
                   </h4>
                   <div className="space-y-3 text-xs text-slate-400">
                     <div className="flex gap-3">
-                      <div className="text-blue-400 font-bold">1.</div>
+                      <div className="text-blue-400 font-bold min-w-[20px]">1.</div>
                       <div>
                         <strong className="text-slate-300">Query Vectorization:</strong> Your natural language query was converted into a 1536-dimensional vector embedding using OpenAI's text-embedding model.
                       </div>
                     </div>
                     <div className="flex gap-3">
-                      <div className="text-blue-400 font-bold">2.</div>
+                      <div className="text-blue-400 font-bold min-w-[20px]">2.</div>
                       <div>
                         <strong className="text-slate-300">Vector Search:</strong> PostgreSQL with pgvector extension performed cosine similarity search across 127,483 memory embeddings in 42ms.
                       </div>
                     </div>
                     <div className="flex gap-3">
-                      <div className="text-blue-400 font-bold">3.</div>
+                      <div className="text-blue-400 font-bold min-w-[20px]">3.</div>
                       <div>
-                        <strong className="text-slate-300">Temporal Analysis:</strong> Each memory's <code className="text-purple-300">occurred_at</code> timestamp was analyzed to boost recent memories while preserving important historical context.
+                        <strong className="text-slate-300">Temporal Analysis:</strong> Each memory's <code className="text-purple-300 bg-slate-800 px-1 rounded">occurred_at</code> timestamp was analyzed to boost recent memories while preserving important historical context.
                       </div>
                     </div>
                     <div className="flex gap-3">
-                      <div className="text-blue-400 font-bold">4.</div>
+                      <div className="text-blue-400 font-bold min-w-[20px]">4.</div>
                       <div>
-                        <strong className="text-slate-300">Fact Classification:</strong> Memories were classified into types: <span className="text-blue-400">World</span> (objective facts), <span className="text-orange-400">Experience</span> (actions taken), <span className="text-purple-400">Observation</span> (noticed patterns), <span className="text-gray-400">Opinion</span> (subjective views).
+                        <strong className="text-slate-300">Fact Classification:</strong> Memories classified by type: <span className="text-blue-400">World</span> (objective facts), <span className="text-orange-400">Experience</span> (actions taken), <span className="text-purple-400">Observation</span> (noticed patterns), <span className="text-gray-400">Opinion</span> (subjective views).
                       </div>
                     </div>
                     <div className="flex gap-3">
-                      <div className="text-blue-400 font-bold">5.</div>
+                      <div className="text-blue-400 font-bold min-w-[20px]">5.</div>
                       <div>
                         <strong className="text-slate-300">Entity Extraction:</strong> Named entities (OAuth2, PostgreSQL, etc.) were extracted and linked to create a knowledge graph for future traversal.
                       </div>
                     </div>
                     <div className="flex gap-3">
-                      <div className="text-blue-400 font-bold">6.</div>
+                      <div className="text-blue-400 font-bold min-w-[20px]">6.</div>
                       <div>
                         <strong className="text-slate-300">Results Ranked:</strong> Memories sorted by similarity score (0.94 = 94% semantic match) and returned with full context and metadata.
                       </div>
